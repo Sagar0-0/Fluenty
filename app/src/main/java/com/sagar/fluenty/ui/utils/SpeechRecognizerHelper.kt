@@ -31,7 +31,6 @@ class SpeechRecognizerHelper(
                 }
 
                 override fun onEndOfSpeech() {
-                    listener?.onEndOfSpeech()
                 }
 
                 override fun onError(error: Int) {
@@ -83,7 +82,6 @@ class SpeechRecognizerHelper(
 
     interface SpeechRecognitionListener {
         fun onStartListening() {}
-        fun onEndOfSpeech() {}
         fun onErrorOfSpeech() {}
         fun onPartialResults(currentResult: String)
         fun onResults(result: String)
