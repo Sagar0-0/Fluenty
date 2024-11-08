@@ -20,8 +20,6 @@ class ConversationScreenViewModel(
     var currentState by mutableStateOf<ConversationScreenState>(ConversationScreenState.Initial)
     var conversationList = mutableStateListOf<ConversationMessage>()
 
-    var currentResponseMessage by mutableStateOf(ConversationMessage("",false,UUID.randomUUID().toString()))
-
     init {
         speechRecognizerHelper.setSpeechListener(this)
         textToSpeechHelper.addListener(this)
@@ -36,19 +34,27 @@ class ConversationScreenViewModel(
     }
 
     override fun onStartListening() {
-        currentState = ConversationScreenState.RecognizingSpeech("")
+        currentState = ConversationScreenState.RecognizingSpeech
+        conversationList.add(ConversationMessage("", true, UUID.randomUUID().toString()))
     }
 
     override fun onPartialResults(currentResult: String) {
-        currentState = ConversationScreenState.RecognizingSpeech(currentResult)
+        val lastItem = conversationList[conversationList.size-1]
+        conversationList[conversationList.size - 1] = lastItem.copy(message = currentResult)
     }
 
     override fun onErrorOfSpeech() {
         currentState = ConversationScreenState.Retry
+        if(conversationList.size>0 && conversationList[conversationList.size-1].isUser) {
+            conversationList.removeAt(conversationList.size-1)
+        }
     }
 
     override fun onResults(result: String) {
-        conversationList.add(ConversationMessage(result, true, UUID.randomUUID().toString()))
+        val lastItem = conversationList[conversationList.size-1]
+        conversationList[conversationList.size - 1] = lastItem.copy(message = result)
+
+        // User is done talking now, start response
         currentState = ConversationScreenState.ProcessingSpeech
         textToSpeechHelper.readText(result)
     }
@@ -61,9 +67,7 @@ class ConversationScreenViewModel(
 
     override fun onStartSpeaking() {
         currentState = ConversationScreenState.ListeningToResponse
-
-        currentResponseMessage = ConversationMessage("",false,UUID.randomUUID().toString())
-        conversationList.add(currentResponseMessage)
+        conversationList.add(ConversationMessage("",false,UUID.randomUUID().toString()))
     }
 
     override fun onSpeaking(text: String) {
@@ -91,7 +95,7 @@ interface ConversationScreenState {
     data object Initial : ConversationScreenState
     data object Retry : ConversationScreenState
     data object ProcessingSpeech : ConversationScreenState
-    data class RecognizingSpeech(val text: String) : ConversationScreenState
+    data object RecognizingSpeech : ConversationScreenState
     data object ListeningToResponse : ConversationScreenState
 }
 

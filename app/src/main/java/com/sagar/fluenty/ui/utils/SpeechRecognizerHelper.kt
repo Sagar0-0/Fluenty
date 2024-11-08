@@ -22,7 +22,6 @@ class SpeechRecognizerHelper(
                     listener?.onStartListening()
                 }
                 override fun onBeginningOfSpeech() {
-
                 }
                 override fun onRmsChanged(rmsdB: Float) {
 

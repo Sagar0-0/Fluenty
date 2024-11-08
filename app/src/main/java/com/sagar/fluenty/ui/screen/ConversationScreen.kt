@@ -103,27 +103,6 @@ fun ConversationScreen(
                 }
             }
 
-            AnimatedVisibility(
-                visible = state is ConversationScreenState.RecognizingSpeech
-            ) {
-                val msg = (state as? ConversationScreenState.RecognizingSpeech)?.text
-                Box(
-                    modifier = Modifier
-                        .padding(top = 10.dp)
-                        .fillMaxWidth()
-                        .heightIn(min = 50.dp)
-                        .clip(RoundedCornerShape(10))
-                        .background(Color.Gray)
-                        .padding(5.dp)
-                ) {
-                    Text(
-                        text = msg ?: "",
-                        fontSize = 20.sp,
-                        color = Color.White
-                    )
-                }
-            }
-
             Button(
                 modifier = Modifier
                     .padding(top = 10.dp)
