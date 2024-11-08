@@ -19,17 +19,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -70,6 +71,9 @@ fun ConversationScreen(
     if (isAudioPermissionGranted) {
         val state = viewModel.currentState
         val conversationList = viewModel.conversationList
+
+        val lazyListState = rememberLazyListState()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -78,9 +82,11 @@ fun ConversationScreen(
             verticalArrangement = Arrangement.Bottom
         ) {
             LazyColumn(
+                state = lazyListState,
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.Bottom
             ) {
                 items(
                     items = conversationList,
@@ -93,6 +99,7 @@ fun ConversationScreen(
                     } else {
                         AssistantMessage(message = it.message)
                     }
+                    Spacer(Modifier.height(10.dp))
                 }
             }
 
@@ -200,8 +207,8 @@ fun ConversationScreen(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                CircularProgressIndicator(modifier = Modifier.width(50.dp))
-                                Text(text = "Generating Response...", color = Color.White)
+                                LinearProgressIndicator(modifier = Modifier.width(50.dp))
+                                Text(text = "Speaking Response...", color = Color.White)
                             }
                         }
                     }
@@ -238,12 +245,14 @@ private fun AssistantMessage(message: String) {
         ) {
             Box(
                 modifier = Modifier
-                    .background(Color.DarkGray)
-                    .padding(10.dp)
-                    .clip(RoundedCornerShape(10)),
+                    .clip(RoundedCornerShape(10))
+                    .background(Color.DarkGray),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = message, fontSize = 16.sp, color = Color.White)
+                Text(
+                    modifier = Modifier.padding(10.dp),
+                    text = message, fontSize = 16.sp, color = Color.White
+                )
             }
         }
     }
