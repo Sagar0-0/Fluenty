@@ -61,5 +61,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation(libs.commons.codec)
+
+    implementation(libs.tasks.genai)
 }

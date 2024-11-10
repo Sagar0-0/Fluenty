@@ -4,14 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.sagar.fluenty.ui.screen.ConversationScreen
+import com.sagar.fluenty.ui.screen.LoadingScreen
 import com.sagar.fluenty.ui.theme.FluentyTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,7 +17,23 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FluentyTheme {
-                ConversationScreen()
+                val navController = rememberNavController()
+                NavHost(
+                    navController = navController,
+                    startDestination = "LOADING"
+                ) {
+                    composable("LOADING") {
+                        LoadingScreen {
+                            navController.navigate("CONVERSATION") {
+                                popUpTo("LOADING") { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+                    composable("CONVERSATION") {
+                        ConversationScreen()
+                    }
+                }
             }
         }
     }

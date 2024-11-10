@@ -9,15 +9,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import com.sagar.fluenty.ui.utils.InferenceModel
 import com.sagar.fluenty.ui.utils.SpeechRecognizerHelper
 import com.sagar.fluenty.ui.utils.TextToSpeechHelper
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectIndexed
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 class ConversationScreenViewModel(
     private val speechRecognizerHelper: SpeechRecognizerHelper,
     private val textToSpeechHelper: TextToSpeechHelper,
+    private val inferenceModel: InferenceModel
 ) : ViewModel(), SpeechRecognizerHelper.SpeechRecognitionListener, TextToSpeechHelper.Listener {
 
     var currentState by mutableStateOf<ConversationScreenState>(ConversationScreenState.Initial)
@@ -28,6 +31,7 @@ class ConversationScreenViewModel(
         textToSpeechHelper.addListener(this)
     }
 
+    // Speech Recognition Methods/Callbacks
     fun startListening() {
         speechRecognizerHelper.startListening()
     }
@@ -59,15 +63,25 @@ class ConversationScreenViewModel(
 
         // User is done talking now, start response
         currentState = ConversationScreenState.ProcessingSpeech
-        textToSpeechHelper.readText(result)
+        getAssistantResponse(result)
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        speechRecognizerHelper.stopListening()
-        speechRecognizerHelper.destroyRecognizer()
+    private fun getAssistantResponse(prompt: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                inferenceModel.generateResponseAsync(prompt)
+                inferenceModel.partialResults
+                    .collectIndexed { index, (partialResult, done) ->
+                        textToSpeechHelper.readText(partialResult)
+                    }
+            } catch (e: Exception) {
+                textToSpeechHelper.readText("Some Error Occurred")
+            }
+        }
     }
 
+
+    // Reading Callbacks
     override fun onStartSpeaking() {
         currentState = ConversationScreenState.ListeningToResponse
         conversationList.add(ConversationMessage("",false,UUID.randomUUID().toString()))
@@ -83,12 +97,21 @@ class ConversationScreenViewModel(
     }
 
 
+
+    override fun onCleared() {
+        super.onCleared()
+        speechRecognizerHelper.stopListening()
+        speechRecognizerHelper.destroyRecognizer()
+        inferenceModel.destroy()
+    }
+
     companion object {
         fun getFactory(context: Context) = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
                 val speechRecognizerHelper = SpeechRecognizerHelper(context)
                 val textToSpeechHelper = TextToSpeechHelper(context)
-                return ConversationScreenViewModel(speechRecognizerHelper, textToSpeechHelper) as T
+                val inferenceModel = InferenceModel.getInstance(context)
+                return ConversationScreenViewModel(speechRecognizerHelper, textToSpeechHelper,inferenceModel) as T
             }
         }
     }
