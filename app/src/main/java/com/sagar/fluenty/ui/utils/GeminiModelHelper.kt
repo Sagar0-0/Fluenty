@@ -1,6 +1,8 @@
 package com.sagar.fluenty.ui.utils
 
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.Content
+import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
 import com.sagar.fluenty.BuildConfig
 import kotlinx.coroutines.Dispatchers
@@ -20,10 +22,18 @@ object GeminiModelHelper {
             },
         )
 
+    private val chatHistory = mutableListOf<Content>()
+    private val chat = model.startChat(chatHistory)
 
     suspend fun getResponse(prompt: String): String? {
         return withContext(Dispatchers.IO) {
-            model.generateContent(prompt).text
+            chatHistory.add(
+                content {
+                    text(prompt)
+                }
+            )
+            val response = chat.sendMessage(prompt)
+            response.text
         }
     }
 }
