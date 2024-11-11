@@ -24,39 +24,54 @@ object GeminiModelHelper {
             },
         )
 
+    private var listener: Listener? = null
+    fun initListener(listener: Listener) {
+        this.listener = listener
+    }
+
     private val chatHistory = mutableListOf<Content>()
     private val chat = model.startChat(chatHistory)
 
-    suspend fun getResponse(prompt: String): String? {
+    suspend fun getResponse(prompt: String) {
         return withContext(Dispatchers.IO) {
             val content = content {
                 text(prompt)
             }
             chatHistory.add(content)
-            try{
+            try {
                 val response = chat.sendMessage(content)
-                response.text
+                if (response.text != null) {
+                    listener?.onResponseGenerated(response.text ?: "")
+                } else {
+                    listener?.onErrorOccurred(Exception("Null response"))
+                }
             } catch (e: Exception) {
                 Log.e("TAG", "getResponse: $e")
-                "Some error occurred."
+                listener?.onErrorOccurred(
+                    Exception("Token Limit exceeded")
+                )
             }
         }
     }
 
-    suspend fun getResponseFromAudioFile(context: Context, fileName: String): String? {
+    suspend fun getResponseFromAudioFile(context: Context, fileName: String) {
         return withContext(Dispatchers.IO) {
-            val bytes = readAudioFromAssets(context,fileName)
+            val bytes = readAudioFromAssets(context, fileName)
             val content = content {
-                bytes?.let { blob("audio/mp3",it) }
+                bytes?.let { blob("audio/mp3", it) }
                 text("Transcribe this audio")
             }
             chatHistory.add(content)
-            try{
+            try {
                 val response = chat.sendMessage(content)
-                response.text
-            } catch (e: Exception){
+                if (response.text != null) {
+                    listener?.onResponseGenerated(response.text ?: "")
+                } else {
+                    listener?.onErrorOccurred(Exception("Null response"))
+                }
+            } catch (e: Exception) {
                 Log.e("TAG", "getResponse: $e")
-                "Some error occurred."
+                listener?.onErrorOccurred(e)
             }
         }
     }
@@ -72,5 +87,10 @@ object GeminiModelHelper {
             e.printStackTrace()
             null
         }
+    }
+
+    interface Listener {
+        fun onResponseGenerated(response: String)
+        fun onErrorOccurred(e: Exception)
     }
 }

@@ -13,6 +13,8 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.sagar.fluenty.ui.utils.GeminiModelHelper
 import com.sagar.fluenty.ui.utils.SpeechRecognizerHelper
 import com.sagar.fluenty.ui.utils.TextToSpeechHelper
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -20,15 +22,22 @@ class ConversationScreenViewModel(
     private val speechRecognizerHelper: SpeechRecognizerHelper,
     private val textToSpeechHelper: TextToSpeechHelper,
     private val geminiModelHelper: GeminiModelHelper
-) : ViewModel(), SpeechRecognizerHelper.SpeechRecognitionListener, TextToSpeechHelper.Listener {
+) : ViewModel(),
+    SpeechRecognizerHelper.SpeechRecognitionListener,
+    TextToSpeechHelper.Listener,
+    GeminiModelHelper.Listener {
 
     var currentState by mutableStateOf<ConversationScreenState>(ConversationScreenState.Initial)
     var conversationList = mutableStateListOf<ConversationMessage>()
     private var responseText = ""
 
+    private val messageChannel = Channel<String>(Channel.BUFFERED)
+    val messageChannelFlow = messageChannel.receiveAsFlow()
+
     init {
         speechRecognizerHelper.setSpeechListener(this)
         textToSpeechHelper.addListener(this)
+        geminiModelHelper.initListener(this)
     }
 
     // Speech Recognition Methods/Callbacks
@@ -64,14 +73,7 @@ class ConversationScreenViewModel(
         // User is done talking now, start Processing
         currentState = ConversationScreenState.ProcessingSpeech
         viewModelScope.launch {
-            val response = geminiModelHelper.getResponse(result)
-            if (response != null) {
-                responseText = response
-                textToSpeechHelper.readText(response)
-            } else {
-                responseText = ""
-                currentState = ConversationScreenState.Retry
-            }
+            geminiModelHelper.getResponse(result)
         }
     }
 
@@ -85,7 +87,8 @@ class ConversationScreenViewModel(
     override fun onSpeaking(text: String) {
         Log.e("TAG", "onSpeaking: Current Spoken $text")
         val lastItem = conversationList[conversationList.size - 1]
-        conversationList[conversationList.size - 1] = lastItem.copy(message = lastItem.message + showResponseTillRead(text))
+        conversationList[conversationList.size - 1] =
+            lastItem.copy(message = lastItem.message + showResponseTillRead(text))
     }
 
     private fun showResponseTillRead(target: String): String {
@@ -116,6 +119,18 @@ class ConversationScreenViewModel(
         currentState = ConversationScreenState.Initial
     }
 
+    // Gemini Callbacks
+    override fun onResponseGenerated(response: String) {
+        responseText = response
+        textToSpeechHelper.readText(response)
+    }
+
+    override fun onErrorOccurred(e: Exception) {
+        viewModelScope.launch {
+            messageChannel.send(e.message ?: "")
+        }
+        currentState = ConversationScreenState.Initial
+    }
 
     override fun onCleared() {
         super.onCleared()

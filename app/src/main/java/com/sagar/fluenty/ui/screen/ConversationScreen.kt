@@ -2,6 +2,7 @@ package com.sagar.fluenty.ui.screen
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
@@ -33,7 +34,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sagar.fluenty.ui.utils.collectInLaunchedEffectWithLifecycle
 
 @Composable
 fun ConversationScreen(
@@ -63,6 +64,10 @@ fun ConversationScreen(
         )
     }
 
+    viewModel.messageChannelFlow.collectInLaunchedEffectWithLifecycle {
+        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -75,7 +80,7 @@ fun ConversationScreen(
 
         val lazyListState = rememberLazyListState()
         LaunchedEffect(key1 = conversationList.size) {
-            if(lazyListState.layoutInfo.visibleItemsInfo.firstOrNull()?.index != 0) {
+            if (lazyListState.layoutInfo.visibleItemsInfo.firstOrNull()?.index != 0) {
                 lazyListState.animateScrollToItem(0)
             }
         }
@@ -227,7 +232,7 @@ fun ConversationScreen(
 }
 
 @Composable
-private fun AssistantMessage(modifier: Modifier,message: String) {
+private fun AssistantMessage(modifier: Modifier, message: String) {
     Column(
         modifier = modifier.animateContentSize()
     ) {
@@ -240,7 +245,13 @@ private fun AssistantMessage(modifier: Modifier,message: String) {
         ) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(topEnd = 10.dp,bottomEnd = 10.dp, bottomStart = 10.dp))
+                    .clip(
+                        RoundedCornerShape(
+                            topEnd = 10.dp,
+                            bottomEnd = 10.dp,
+                            bottomStart = 10.dp
+                        )
+                    )
                     .animateContentSize()
                     .background(Color.DarkGray),
                 contentAlignment = Alignment.Center
@@ -255,7 +266,7 @@ private fun AssistantMessage(modifier: Modifier,message: String) {
 }
 
 @Composable
-private fun UserMessage(modifier: Modifier,message: String) {
+private fun UserMessage(modifier: Modifier, message: String) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -272,7 +283,13 @@ private fun UserMessage(modifier: Modifier,message: String) {
         ) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(topStart = 10.dp,bottomEnd = 10.dp, bottomStart = 10.dp))
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 10.dp,
+                            bottomEnd = 10.dp,
+                            bottomStart = 10.dp
+                        )
+                    )
                     .animateContentSize()
                     .background(Color.DarkGray),
                 contentAlignment = Alignment.Center
