@@ -1,6 +1,7 @@
 package com.sagar.fluenty.ui.screen
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -69,7 +70,7 @@ class ConversationScreenViewModel(
                 textToSpeechHelper.readText(response)
             } else {
                 responseText = ""
-                currentState = ConversationScreenState.Retry // TODO: Response null state
+                currentState = ConversationScreenState.Retry
             }
         }
     }
@@ -82,13 +83,13 @@ class ConversationScreenViewModel(
     }
 
     override fun onSpeaking(text: String) {
+        Log.e("TAG", "onSpeaking: Current Spoken $text")
         val lastItem = conversationList[conversationList.size - 1]
-        conversationList[conversationList.size - 1] =
-            lastItem.copy(message = conversationList[conversationList.size - 1].message + showResponseTillRead(text))
+        conversationList[conversationList.size - 1] = lastItem.copy(message = lastItem.message + showResponseTillRead(text))
     }
 
     private fun showResponseTillRead(target: String): String {
-        val index = responseText.indexOf(target)
+        val index = responseText.indexOf(target, ignoreCase = true)
         return if (index != -1) {
             // End Index is the end of the target
             var endIndex = index + target.length
@@ -96,15 +97,16 @@ class ConversationScreenViewModel(
             // Check if there's a character after the target
             if (endIndex < responseText.length) {
                 // Include the next character if it's a special character
-                val nextChar = responseText[endIndex + 1]
+                val nextChar = responseText[endIndex]
                 if (!nextChar.isLetterOrDigit() || nextChar == ' ') {
                     endIndex++
                 }
+                val result = responseText.substring(0, endIndex)
+                responseText = responseText.removePrefix(result)
+                result
+            } else {
+                ""
             }
-            responseText.substring(0, endIndex)
-                .also {
-                    responseText = responseText.substring(endIndex, responseText.length)
-                }
         } else {
             responseText
         }

@@ -231,7 +231,7 @@ private fun AssistantMessage(modifier: Modifier,message: String) {
     Column(
         modifier = modifier.animateContentSize()
     ) {
-        Text(text = "Fluenty Assistant", color = Color.White, fontWeight = FontWeight.Bold)
+        Text(text = "Assistant", color = Color.White, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(5.dp))
         Box(
             modifier = Modifier

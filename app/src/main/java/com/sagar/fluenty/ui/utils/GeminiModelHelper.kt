@@ -1,6 +1,7 @@
 package com.sagar.fluenty.ui.utils
 
 import android.content.Context
+import android.util.Log
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.Content
 import com.google.ai.client.generativeai.type.content
@@ -28,27 +29,35 @@ object GeminiModelHelper {
 
     suspend fun getResponse(prompt: String): String? {
         return withContext(Dispatchers.IO) {
-            chatHistory.add(
-                content {
-                    text(prompt)
-                }
-            )
-            val response = chat.sendMessage(prompt)
-            response.text
+            val content = content {
+                text(prompt)
+            }
+            chatHistory.add(content)
+            try{
+                val response = chat.sendMessage(content)
+                response.text
+            } catch (e: Exception) {
+                Log.e("TAG", "getResponse: $e")
+                "Some error occurred."
+            }
         }
     }
 
-    suspend fun readFromAudioFile(context: Context, fileName: String): String? {
+    suspend fun getResponseFromAudioFile(context: Context, fileName: String): String? {
         return withContext(Dispatchers.IO) {
             val bytes = readAudioFromAssets(context,fileName)
             val content = content {
                 bytes?.let { blob("audio/mp3",it) }
+                text("Transcribe this audio")
             }
-            chatHistory.add(
-                content
-            )
-            val response = model.generateContent(content)
-            response.text
+            chatHistory.add(content)
+            try{
+                val response = chat.sendMessage(content)
+                response.text
+            } catch (e: Exception){
+                Log.e("TAG", "getResponse: $e")
+                "Some error occurred."
+            }
         }
     }
 
