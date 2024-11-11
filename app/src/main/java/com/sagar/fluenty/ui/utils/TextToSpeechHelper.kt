@@ -25,24 +25,25 @@ class TextToSpeechHelper(
     }
 
     private fun setListener() {
-        textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) {
-                listener?.onStartSpeaking()
-            }
+        textToSpeech.setOnUtteranceProgressListener(
+            object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {
+                    listener?.onStartSpeaking()
+                }
 
-            override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
-                listener?.onSpeaking(currentText.substring(start, end))
-            }
+                override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+                    listener?.onSpeaking(currentText.substring(start, end))
+                }
 
-            override fun onDone(utteranceId: String?) {
-                listener?.onDoneSpeaking()
-            }
+                override fun onDone(utteranceId: String?) {
+                    listener?.onDoneSpeaking()
+                }
 
-            override fun onError(utteranceId: String?) {
-                listener?.onErrorSpeaking()
+                override fun onError(utteranceId: String?) {
+                    listener?.onErrorSpeaking()
+                }
             }
-
-        })
+        )
     }
 
     private fun setLanguage() {

@@ -23,6 +23,7 @@ class ConversationScreenViewModel(
 
     var currentState by mutableStateOf<ConversationScreenState>(ConversationScreenState.Initial)
     var conversationList = mutableStateListOf<ConversationMessage>()
+    private var responseText = ""
 
     init {
         speechRecognizerHelper.setSpeechListener(this)
@@ -64,8 +65,10 @@ class ConversationScreenViewModel(
         viewModelScope.launch {
             val response = geminiModelHelper.getResponse(result)
             if (response != null) {
+                responseText = response
                 textToSpeechHelper.readText(response)
             } else {
+                responseText = ""
                 currentState = ConversationScreenState.Retry // TODO: Response null state
             }
         }
@@ -81,7 +84,27 @@ class ConversationScreenViewModel(
     override fun onSpeaking(text: String) {
         val lastItem = conversationList[conversationList.size - 1]
         conversationList[conversationList.size - 1] =
-            lastItem.copy(message = lastItem.message + " " + text)
+            lastItem.copy(message = showResponseTillRead(text))
+    }
+
+    private fun showResponseTillRead(target: String): String {
+        val index = responseText.indexOf(target)
+        return if (index != -1) {
+            // End Index is the end of the target
+            var endIndex = index + target.length
+
+            // Check if there's a character after the target
+            if (endIndex < responseText.length) {
+                // Include the next character if it's a special character
+                val nextChar = responseText[endIndex + 1]
+                if (!nextChar.isLetterOrDigit() || nextChar == ' ') {
+                    endIndex++
+                }
+            }
+            responseText.substring(0,endIndex)
+        } else {
+            responseText
+        }
     }
 
     override fun onDoneSpeaking() {
