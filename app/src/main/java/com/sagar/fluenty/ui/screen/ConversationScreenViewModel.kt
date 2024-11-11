@@ -84,7 +84,7 @@ class ConversationScreenViewModel(
     override fun onSpeaking(text: String) {
         val lastItem = conversationList[conversationList.size - 1]
         conversationList[conversationList.size - 1] =
-            lastItem.copy(message = showResponseTillRead(text))
+            lastItem.copy(message = conversationList[conversationList.size - 1].message + showResponseTillRead(text))
     }
 
     private fun showResponseTillRead(target: String): String {
@@ -101,7 +101,10 @@ class ConversationScreenViewModel(
                     endIndex++
                 }
             }
-            responseText.substring(0,endIndex)
+            responseText.substring(0, endIndex)
+                .also {
+                    responseText = responseText.substring(endIndex, responseText.length)
+                }
         } else {
             responseText
         }
@@ -123,7 +126,9 @@ class ConversationScreenViewModel(
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
                 val speechRecognizerHelper = SpeechRecognizerHelper(context)
                 val textToSpeechHelper = TextToSpeechHelper(context)
-                return ConversationScreenViewModel(speechRecognizerHelper, textToSpeechHelper,GeminiModelHelper) as T
+                return ConversationScreenViewModel(
+                    speechRecognizerHelper, textToSpeechHelper, GeminiModelHelper
+                ) as T
             }
         }
     }
@@ -138,7 +143,5 @@ interface ConversationScreenState {
 }
 
 data class ConversationMessage(
-    val message: String,
-    val isUser: Boolean,
-    val id: String
+    val message: String, val isUser: Boolean, val id: String
 )

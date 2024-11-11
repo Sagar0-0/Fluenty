@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -70,23 +71,28 @@ fun ConversationScreen(
 
     if (isAudioPermissionGranted) {
         val state = viewModel.currentState
-        val conversationList = viewModel.conversationList
+        val conversationList = viewModel.conversationList.reversed()
 
         val lazyListState = rememberLazyListState()
-
+        LaunchedEffect(key1 = conversationList.size) {
+            if(lazyListState.layoutInfo.visibleItemsInfo.firstOrNull()?.index != 0) {
+                lazyListState.animateScrollToItem(0)
+            }
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
-                .statusBarsPadding()
-                .padding(20.dp),
+                .background(Color.Black),
             verticalArrangement = Arrangement.Bottom
         ) {
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
+                    .statusBarsPadding()
+                    .padding(horizontal = 20.dp)
                     .weight(1f)
                     .fillMaxWidth(),
+                reverseLayout = true,
                 verticalArrangement = Arrangement.Bottom
             ) {
                 items(
@@ -96,9 +102,15 @@ fun ConversationScreen(
                     }
                 ) {
                     if (it.isUser) {
-                        UserMessage(message = it.message)
+                        UserMessage(
+                            modifier = Modifier.animateItem(),
+                            message = it.message
+                        )
                     } else {
-                        AssistantMessage(message = it.message)
+                        AssistantMessage(
+                            modifier = Modifier.animateItem(),
+                            message = it.message
+                        )
                     }
                     Spacer(Modifier.height(10.dp))
                 }
@@ -106,7 +118,7 @@ fun ConversationScreen(
 
             Button(
                 modifier = Modifier
-                    .padding(top = 10.dp)
+                    .padding(20.dp)
                     .fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp),
                 onClick = {
@@ -215,9 +227,9 @@ fun ConversationScreen(
 }
 
 @Composable
-private fun AssistantMessage(message: String) {
+private fun AssistantMessage(modifier: Modifier,message: String) {
     Column(
-        modifier = Modifier.animateContentSize()
+        modifier = modifier.animateContentSize()
     ) {
         Text(text = "Fluenty Assistant", color = Color.White, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(5.dp))
@@ -243,9 +255,9 @@ private fun AssistantMessage(message: String) {
 }
 
 @Composable
-private fun UserMessage(message: String) {
+private fun UserMessage(modifier: Modifier,message: String) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .animateContentSize(),
         horizontalAlignment = Alignment.End
