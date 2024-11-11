@@ -19,7 +19,7 @@ class SpeechRecognizerHelper(
         speechRecognizer.setRecognitionListener(
             object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle) {
-                    listener?.onStartListening()
+                    listener?.onStartRecognition()
                 }
                 override fun onBeginningOfSpeech() {
                 }
@@ -34,14 +34,14 @@ class SpeechRecognizerHelper(
                 }
 
                 override fun onError(error: Int) {
-                    listener?.onErrorOfSpeech()
+                    listener?.onErrorRecognition()
                 }
 
                 override fun onResults(results: Bundle) {
                     val matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     if (matches != null && matches.size > 0) {
                         val command = matches[0]
-                        listener?.onResults(command)
+                        listener?.onCompleteRecognition(command)
                     }
                 }
 
@@ -50,7 +50,7 @@ class SpeechRecognizerHelper(
                         partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     if (matches != null && matches.size > 0) {
                         val partialText = matches[0]
-                        listener?.onPartialResults(partialText)
+                        listener?.onPartialRecognition(partialText)
                     }
                 }
 
@@ -81,10 +81,10 @@ class SpeechRecognizerHelper(
     }
 
     interface SpeechRecognitionListener {
-        fun onStartListening() {}
-        fun onErrorOfSpeech() {}
-        fun onPartialResults(currentResult: String)
-        fun onResults(result: String)
+        fun onStartRecognition() {}
+        fun onErrorRecognition() {}
+        fun onPartialRecognition(currentResult: String)
+        fun onCompleteRecognition(result: String)
     }
 
 }

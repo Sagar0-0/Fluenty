@@ -28,7 +28,7 @@ class TextToSpeechHelper(
         textToSpeech.setOnUtteranceProgressListener(
             object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) {
-                    listener?.onStartSpeaking()
+                    listener?.onStartTTS()
                 }
 
                 override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
@@ -36,7 +36,7 @@ class TextToSpeechHelper(
                 }
 
                 override fun onDone(utteranceId: String?) {
-                    listener?.onDoneSpeaking()
+                    listener?.onCompleteTTS()
                 }
 
                 override fun onError(utteranceId: String?) {
@@ -62,9 +62,9 @@ class TextToSpeechHelper(
 
 
     interface Listener {
-        fun onStartSpeaking()
+        fun onStartTTS()
         fun onSpeaking(text: String)
-        fun onDoneSpeaking()
+        fun onCompleteTTS()
         fun onErrorSpeaking() {}
     }
 

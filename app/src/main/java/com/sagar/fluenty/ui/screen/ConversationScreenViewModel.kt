@@ -40,7 +40,6 @@ class ConversationScreenViewModel(
         geminiModelHelper.initListener(this)
     }
 
-    // Speech Recognition Methods/Callbacks
     fun startListening() {
         speechRecognizerHelper.startListening()
     }
@@ -49,26 +48,42 @@ class ConversationScreenViewModel(
         speechRecognizerHelper.stopListening()
     }
 
-    override fun onStartListening() {
+    private fun disablePreviousMessageEditing() {
+        var index = conversationList.size-1
+        while(index>0 || !conversationList[index].isUser){
+            index--
+        }
+        conversationList[index] = conversationList[index].copy(isEditingEnabled = false,isError = false)
+    }
+
+    fun resendPreviousMessage() {
+        // User is done talking now, start Processing
+        currentState = ConversationScreenState.ProcessingSpeech
+        viewModelScope.launch {
+            geminiModelHelper.getResponse(conversationList[conversationList.size - 1].message)
+        }
+    }
+
+    fun editPreviousMessage() {
+
+    }
+
+
+    // Speech Recognition Callbacks
+    override fun onStartRecognition() {
         currentState = ConversationScreenState.RecognizingSpeech
         conversationList.add(ConversationMessage("", true, UUID.randomUUID().toString()))
     }
 
-    override fun onPartialResults(currentResult: String) {
+    override fun onPartialRecognition(currentResult: String) {
         val lastItem = conversationList[conversationList.size - 1]
         conversationList[conversationList.size - 1] = lastItem.copy(message = currentResult)
     }
 
-    override fun onErrorOfSpeech() {
-        currentState = ConversationScreenState.Retry
-        if (conversationList.size > 0 && conversationList[conversationList.size - 1].isUser) {
-            conversationList.removeAt(conversationList.size - 1)
-        }
-    }
-
-    override fun onResults(result: String) {
+    override fun onCompleteRecognition(result: String) {
+        disablePreviousMessageEditing()
         val lastItem = conversationList[conversationList.size - 1]
-        conversationList[conversationList.size - 1] = lastItem.copy(message = result)
+        conversationList[conversationList.size - 1] = lastItem.copy(message = result, isEditingEnabled = true, isError = false)
 
         // User is done talking now, start Processing
         currentState = ConversationScreenState.ProcessingSpeech
@@ -77,9 +92,29 @@ class ConversationScreenViewModel(
         }
     }
 
+    override fun onErrorRecognition() {
+        currentState = ConversationScreenState.Retry
+        if (conversationList.size > 0 && conversationList[conversationList.size - 1].isUser) {
+            conversationList.removeAt(conversationList.size - 1)
+        }
+    }
 
-    // Reading Callbacks
-    override fun onStartSpeaking() {
+    // Gemini Callbacks
+    override fun onResponseGenerated(response: String) {
+        responseText = response
+        textToSpeechHelper.readText(response)
+    }
+
+    override fun onErrorOccurred(e: Exception) {
+        viewModelScope.launch {
+            messageChannel.send(e.message ?: "")
+        }
+        conversationList[conversationList.size - 1] = conversationList[conversationList.size - 1].copy(isError = true)
+        currentState = ConversationScreenState.Initial
+    }
+
+    // TTS Callbacks
+    override fun onStartTTS() {
         currentState = ConversationScreenState.ListeningToResponse
         conversationList.add(ConversationMessage("", false, UUID.randomUUID().toString()))
     }
@@ -88,10 +123,10 @@ class ConversationScreenViewModel(
         Log.e("TAG", "onSpeaking: Current Spoken $text")
         val lastItem = conversationList[conversationList.size - 1]
         conversationList[conversationList.size - 1] =
-            lastItem.copy(message = lastItem.message + showResponseTillRead(text))
+            lastItem.copy(message = lastItem.message + showResponseForTTSRead(text))
     }
 
-    private fun showResponseTillRead(target: String): String {
+    private fun showResponseForTTSRead(target: String): String {
         val index = responseText.indexOf(target, ignoreCase = true)
         return if (index != -1) {
             // End Index is the end of the target
@@ -115,20 +150,7 @@ class ConversationScreenViewModel(
         }
     }
 
-    override fun onDoneSpeaking() {
-        currentState = ConversationScreenState.Initial
-    }
-
-    // Gemini Callbacks
-    override fun onResponseGenerated(response: String) {
-        responseText = response
-        textToSpeechHelper.readText(response)
-    }
-
-    override fun onErrorOccurred(e: Exception) {
-        viewModelScope.launch {
-            messageChannel.send(e.message ?: "")
-        }
+    override fun onCompleteTTS() {
         currentState = ConversationScreenState.Initial
     }
 
@@ -160,5 +182,9 @@ interface ConversationScreenState {
 }
 
 data class ConversationMessage(
-    val message: String, val isUser: Boolean, val id: String
+    val message: String,
+    val isUser: Boolean,
+    val id: String,
+    val isEditingEnabled: Boolean = false,
+    val isError: Boolean = false
 )

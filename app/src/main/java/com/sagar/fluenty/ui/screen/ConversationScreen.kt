@@ -5,8 +5,10 @@ import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +26,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -109,7 +112,15 @@ fun ConversationScreen(
                     if (it.isUser) {
                         UserMessage(
                             modifier = Modifier.animateItem(),
-                            message = it.message
+                            message = it.message,
+                            isResponseError = it.isError,
+                            isEditingEnabled = it.isEditingEnabled,
+                            onEditClick = {
+                                viewModel.editPreviousMessage()
+                            },
+                            onRetryClick = {
+                                viewModel.resendPreviousMessage()
+                            }
                         )
                     } else {
                         AssistantMessage(
@@ -266,14 +277,43 @@ private fun AssistantMessage(modifier: Modifier, message: String) {
 }
 
 @Composable
-private fun UserMessage(modifier: Modifier, message: String) {
+private fun UserMessage(
+    modifier: Modifier,
+    message: String,
+    isResponseError: Boolean,
+    isEditingEnabled: Boolean,
+    onEditClick: () -> Unit,
+    onRetryClick: () -> Unit
+) {
     Column(
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize(),
         horizontalAlignment = Alignment.End
     ) {
-        Text(text = "You", color = Color.White, fontWeight = FontWeight.Bold)
+        Row(
+            modifier = Modifier
+                .animateContentSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "You", color = Color.White, fontWeight = FontWeight.Bold)
+            AnimatedVisibility(isResponseError) {
+                Icon(
+                    modifier = Modifier.padding(start = 10.dp).clickable { onRetryClick() },
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = null,
+                    tint = Color.Red
+                )
+            }
+            AnimatedVisibility(isEditingEnabled) {
+                Icon(
+                    modifier = Modifier.padding(start = 10.dp).clickable { onEditClick() },
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = null,
+                    tint = Color.White
+                )
+            }
+        }
         Spacer(Modifier.height(5.dp))
         Box(
             modifier = Modifier
