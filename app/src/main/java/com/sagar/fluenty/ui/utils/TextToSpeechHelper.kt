@@ -53,7 +53,7 @@ class TextToSpeechHelper(
         currentText = text
         textToSpeech.speak(
             text,
-            TextToSpeech.QUEUE_FLUSH,
+            TextToSpeech.QUEUE_ADD,
             null,
             TextToSpeech.ACTION_TTS_QUEUE_PROCESSING_COMPLETED
         )

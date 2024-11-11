@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -26,6 +28,15 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            buildConfigField(
+                "String", "GEMINI_API_KEY_DEBUG",
+                gradleLocalProperties(
+                    projectRootDir = rootDir,
+                    providers = rootProject.providers
+                ).getProperty("GEMINI_API_KEY_DEBUG")
+            )
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -36,6 +47,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -62,5 +74,5 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
 
-    implementation(libs.tasks.genai)
+    implementation(libs.generativeai)
 }
