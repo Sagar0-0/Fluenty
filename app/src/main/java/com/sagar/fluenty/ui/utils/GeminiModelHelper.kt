@@ -1,6 +1,5 @@
 package com.sagar.fluenty.ui.utils
 
-import android.content.Context
 import android.util.Log
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.Content
@@ -9,9 +8,16 @@ import com.google.ai.client.generativeai.type.generationConfig
 import com.sagar.fluenty.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.IOException
 
-object GeminiModelHelper {
+interface GeminiApiManager {
+    fun initListener(listener: GeminiApiListener)
+    suspend fun generateResponse(prompt: String)
+    suspend fun generateResponseFromAudio(file: File)
+}
+
+object GeminiApiManagerImpl : GeminiApiManager {
     private val model =
         GenerativeModel(
             modelName = "gemini-1.5-pro-002",
@@ -24,15 +30,16 @@ object GeminiModelHelper {
             },
         )
 
-    private var listener: Listener? = null
-    fun initListener(listener: Listener) {
+    private var listener: GeminiApiListener? = null
+
+    override fun initListener(listener: GeminiApiListener) {
         this.listener = listener
     }
 
     private val chatHistory = mutableListOf<Content>()
     private val chat = model.startChat(chatHistory)
 
-    suspend fun getResponse(prompt: String) {
+    override suspend fun generateResponse(prompt: String) {
         return withContext(Dispatchers.IO) {
             val content = content {
                 text(prompt)
@@ -54,9 +61,9 @@ object GeminiModelHelper {
         }
     }
 
-    suspend fun getResponseFromAudioFile(context: Context, fileName: String) {
+    override suspend fun generateResponseFromAudio(file: File) {
         return withContext(Dispatchers.IO) {
-            val bytes = readAudioFromAssets(context, fileName)
+            val bytes = readAudioFromAssets(file)
             val content = content {
                 bytes?.let { blob("audio/mp3", it) }
                 text("Understand the audio and respond accordingly.")
@@ -76,9 +83,9 @@ object GeminiModelHelper {
         }
     }
 
-    private fun readAudioFromAssets(context: Context, fileName: String): ByteArray? {
+    private fun readAudioFromAssets(file: File): ByteArray? {
         return try {
-            val inputStream = context.assets.open(fileName)
+            val inputStream = file.inputStream()
             val buffer = ByteArray(inputStream.available())
             inputStream.read(buffer)
             inputStream.close()
@@ -89,8 +96,9 @@ object GeminiModelHelper {
         }
     }
 
-    interface Listener {
-        fun onResponseGenerated(response: String)
-        fun onErrorOccurred(e: Exception)
-    }
+}
+
+interface GeminiApiListener {
+    fun onResponseGenerated(response: String)
+    fun onErrorOccurred(e: Exception)
 }

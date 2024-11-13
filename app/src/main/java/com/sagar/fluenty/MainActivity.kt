@@ -7,7 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.sagar.fluenty.ui.screen.ConversationScreen
+import com.sagar.fluenty.ui.screen.audio.AudioRecordScreen
+import com.sagar.fluenty.ui.screen.conversation.ConversationScreen
+import com.sagar.fluenty.ui.screen.home.HomeScreen
 import com.sagar.fluenty.ui.theme.FluentyTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,10 +21,27 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 NavHost(
                     navController = navController,
-                    startDestination = "CONVERSATION"
+                    startDestination = "HOME"
                 ) {
+                    composable("HOME") {
+                        HomeScreen(
+                            onConversationClick = {
+                                navController.navigate("CONVERSATION")
+                            },
+                            onAudioClick = {
+                                navController.navigate("AUDIO")
+                            }
+                        )
+                    }
                     composable("CONVERSATION") {
-                        ConversationScreen()
+                        ConversationScreen {
+                            navController.navigateUp()
+                        }
+                    }
+                    composable("AUDIO") {
+                        AudioRecordScreen {
+                            navController.navigateUp()
+                        }
                     }
                 }
             }

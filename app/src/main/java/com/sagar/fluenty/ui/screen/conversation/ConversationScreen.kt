@@ -1,10 +1,6 @@
-package com.sagar.fluenty.ui.screen
+package com.sagar.fluenty.ui.screen.conversation
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -25,20 +21,20 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,7 +43,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sagar.fluenty.ui.utils.collectInLaunchedEffectWithLifecycle
 
@@ -55,40 +50,45 @@ import com.sagar.fluenty.ui.utils.collectInLaunchedEffectWithLifecycle
 fun ConversationScreen(
     viewModel: ConversationScreenViewModel = viewModel(
         factory = ConversationScreenViewModel.getFactory(LocalContext.current.applicationContext)
-    )
+    ),
+    onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    var isAudioPermissionGranted by rememberSaveable {
-        mutableStateOf(
-            PackageManager.PERMISSION_GRANTED == ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.RECORD_AUDIO
-            )
-        )
-    }
-
     viewModel.messageChannelFlow.collectInLaunchedEffectWithLifecycle {
         Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
     }
+    val state = viewModel.currentState
+    val conversationList = viewModel.conversationList.reversed()
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        isAudioPermissionGranted = isGranted
+    val lazyListState = rememberLazyListState()
+    LaunchedEffect(key1 = conversationList.size) {
+        if (lazyListState.layoutInfo.visibleItemsInfo.firstOrNull()?.index != 0) {
+            lazyListState.animateScrollToItem(0)
+        }
     }
 
-    if (isAudioPermissionGranted) {
-        val state = viewModel.currentState
-        val conversationList = viewModel.conversationList.reversed()
-
-        val lazyListState = rememberLazyListState()
-        LaunchedEffect(key1 = conversationList.size) {
-            if (lazyListState.layoutInfo.visibleItemsInfo.firstOrNull()?.index != 0) {
-                lazyListState.animateScrollToItem(0)
+    Scaffold(
+        topBar = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onBack
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                }
+                Text(text = "English Practice", color = Color.White)
             }
         }
+    ) { inner ->
         Column(
             modifier = Modifier
+                .padding(inner)
                 .fillMaxSize()
                 .background(Color.Black),
             verticalArrangement = Arrangement.Bottom
@@ -223,22 +223,8 @@ fun ConversationScreen(
                 }
             }
         }
-    } else {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black),
-            contentAlignment = Alignment.Center
-        ) {
-            Button(
-                onClick = {
-                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                }
-            ) {
-                Text("Grant Audio Permission")
-            }
-        }
     }
+
 
 }
 
@@ -299,7 +285,9 @@ private fun UserMessage(
             Text(text = "You", color = Color.White, fontWeight = FontWeight.Bold)
             AnimatedVisibility(isResponseError) {
                 Icon(
-                    modifier = Modifier.padding(start = 10.dp).clickable { onRetryClick() },
+                    modifier = Modifier
+                        .padding(start = 10.dp)
+                        .clickable { onRetryClick() },
                     imageVector = Icons.Default.Refresh,
                     contentDescription = null,
                     tint = Color.Red
@@ -307,7 +295,9 @@ private fun UserMessage(
             }
             AnimatedVisibility(isEditingEnabled) {
                 Icon(
-                    modifier = Modifier.padding(start = 10.dp).clickable { onEditClick() },
+                    modifier = Modifier
+                        .padding(start = 10.dp)
+                        .clickable { onEditClick() },
                     imageVector = Icons.Default.Edit,
                     contentDescription = null,
                     tint = Color.White

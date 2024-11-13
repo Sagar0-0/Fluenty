@@ -1,4 +1,4 @@
-package com.sagar.fluenty.ui.screen
+package com.sagar.fluenty.ui.screen.conversation
 
 import android.content.Context
 import android.util.Log
@@ -10,22 +10,28 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
-import com.sagar.fluenty.ui.utils.GeminiModelHelper
-import com.sagar.fluenty.ui.utils.SpeechRecognizerHelper
-import com.sagar.fluenty.ui.utils.TextToSpeechHelper
+import com.sagar.fluenty.ui.utils.SpeechRecognizerManager
+import com.sagar.fluenty.ui.utils.SpeechRecognizerManagerImpl
+import com.sagar.fluenty.ui.utils.TextToSpeechManager
+import com.sagar.fluenty.ui.utils.TextToSpeechManagerImpl
+import com.sagar.fluenty.ui.utils.GeminiApiManager
+import com.sagar.fluenty.ui.utils.GeminiApiManagerImpl
+import com.sagar.fluenty.ui.utils.GeminiApiListener
+import com.sagar.fluenty.ui.utils.SpeechRecognitionListener
+import com.sagar.fluenty.ui.utils.TextToSpeechListener
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 class ConversationScreenViewModel(
-    private val speechRecognizerHelper: SpeechRecognizerHelper,
-    private val textToSpeechHelper: TextToSpeechHelper,
-    private val geminiModelHelper: GeminiModelHelper
+    private val speechRecognizerManager: SpeechRecognizerManager,
+    private val textToSpeechManager: TextToSpeechManager,
+    private val geminiApiManager: GeminiApiManager
 ) : ViewModel(),
-    SpeechRecognizerHelper.SpeechRecognitionListener,
-    TextToSpeechHelper.Listener,
-    GeminiModelHelper.Listener {
+    SpeechRecognitionListener,
+    TextToSpeechListener,
+    GeminiApiListener {
 
     var currentState by mutableStateOf<ConversationScreenState>(ConversationScreenState.Initial)
     var conversationList = mutableStateListOf<ConversationMessage>()
@@ -35,17 +41,17 @@ class ConversationScreenViewModel(
     val messageChannelFlow = messageChannel.receiveAsFlow()
 
     init {
-        speechRecognizerHelper.setSpeechListener(this)
-        textToSpeechHelper.initListener(this)
-        geminiModelHelper.initListener(this)
+        speechRecognizerManager.initListener(this)
+        textToSpeechManager.initListener(this)
+        geminiApiManager.initListener(this)
     }
 
     fun startListening() {
-        speechRecognizerHelper.startListening()
+        speechRecognizerManager.startListening()
     }
 
     fun stopListening() {
-        speechRecognizerHelper.stopListening()
+        speechRecognizerManager.stopListening()
     }
 
     private fun disablePreviousMessageEditing() {
@@ -61,8 +67,8 @@ class ConversationScreenViewModel(
         // User is done talking now, start Processing
         currentState = ConversationScreenState.ProcessingSpeech
         viewModelScope.launch {
-            if (conversationList.size > 0) {
-                geminiModelHelper.getResponse(conversationList[conversationList.size - 1].message)
+            if (conversationList.size > 0 && conversationList[conversationList.size - 1].isUser) {
+                geminiApiManager.generateResponse(conversationList[conversationList.size - 1].message)
             }
         }
     }
@@ -95,7 +101,7 @@ class ConversationScreenViewModel(
         // User is done talking now, start Processing
         currentState = ConversationScreenState.ProcessingSpeech
         viewModelScope.launch {
-            geminiModelHelper.getResponse(result)
+            geminiApiManager.generateResponse(result)
         }
     }
 
@@ -109,7 +115,7 @@ class ConversationScreenViewModel(
     // Gemini Callbacks
     override fun onResponseGenerated(response: String) {
         responseText = response
-        textToSpeechHelper.readText(response)
+        textToSpeechManager.readText(response)
     }
 
     override fun onErrorOccurred(e: Exception) {
@@ -168,17 +174,18 @@ class ConversationScreenViewModel(
 
     override fun onCleared() {
         super.onCleared()
-        speechRecognizerHelper.stopListening()
-        speechRecognizerHelper.destroyRecognizer()
+        speechRecognizerManager.destroyRecognizer()
+        textToSpeechManager.destroy()
     }
 
     companion object {
         fun getFactory(context: Context) = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
-                val speechRecognizerHelper = SpeechRecognizerHelper(context)
-                val textToSpeechHelper = TextToSpeechHelper(context)
+                val appSpeechRecognizer = SpeechRecognizerManagerImpl(context)
+                val appTextToSpeech = TextToSpeechManagerImpl(context)
+                val geminiApi = GeminiApiManagerImpl
                 return ConversationScreenViewModel(
-                    speechRecognizerHelper, textToSpeechHelper, GeminiModelHelper
+                    appSpeechRecognizer, appTextToSpeech, geminiApi
                 ) as T
             }
         }

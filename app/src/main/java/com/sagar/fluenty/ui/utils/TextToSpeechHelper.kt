@@ -5,42 +5,44 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import java.util.Locale
 
-class TextToSpeechHelper(
+interface TextToSpeechManager {
+    fun initListener(listener: TextToSpeechListener)
+    fun readText(text: String)
+    fun destroy()
+}
+
+class TextToSpeechManagerImpl(
     context: Context
-) {
+) : TextToSpeechManager {
     private val textToSpeech = TextToSpeech(
         context
     ) { status ->
         if (status == TextToSpeech.SUCCESS) {
             setLanguage()
-            setListener()
         }
     }
 
-    private var listener: Listener? = null
+    private var listener: TextToSpeechListener? = null
     private var currentText: String = ""
 
-    fun initListener(listener: Listener) {
+    override fun initListener(listener: TextToSpeechListener) {
         this.listener = listener
-    }
-
-    private fun setListener() {
         textToSpeech.setOnUtteranceProgressListener(
             object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) {
-                    listener?.onStartTTS()
+                    listener.onStartTTS()
                 }
 
                 override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
-                    listener?.onSpeaking(currentText.substring(start, end))
+                    listener.onSpeaking(currentText.substring(start, end))
                 }
 
                 override fun onDone(utteranceId: String?) {
-                    listener?.onCompleteTTS()
+                    listener.onCompleteTTS()
                 }
 
                 override fun onError(utteranceId: String?) {
-                    listener?.onErrorSpeaking()
+                    listener.onErrorSpeaking()
                 }
             }
         )
@@ -50,7 +52,7 @@ class TextToSpeechHelper(
         textToSpeech.setLanguage(Locale.ENGLISH)
     }
 
-    fun readText(text: String) {
+    override fun readText(text: String) {
         currentText = text
         textToSpeech.speak(
             text,
@@ -60,12 +62,15 @@ class TextToSpeechHelper(
         )
     }
 
-
-    interface Listener {
-        fun onStartTTS()
-        fun onSpeaking(text: String)
-        fun onCompleteTTS()
-        fun onErrorSpeaking() {}
+    override fun destroy() {
+        textToSpeech.shutdown()
     }
 
+}
+
+interface TextToSpeechListener {
+    fun onStartTTS()
+    fun onSpeaking(text: String)
+    fun onCompleteTTS()
+    fun onErrorSpeaking() {}
 }

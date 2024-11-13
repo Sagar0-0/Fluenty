@@ -7,25 +7,36 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 
-class SpeechRecognizerHelper(
+interface SpeechRecognizerManager {
+    fun initListener(listener: SpeechRecognitionListener)
+    fun startListening()
+    fun stopListening()
+    fun destroyRecognizer()
+}
+
+class SpeechRecognizerManagerImpl(
     context: Context
-) {
-    private var speechRecognizer: SpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
+) : SpeechRecognizerManager {
+    private var speechRecognizer: SpeechRecognizer =
+        SpeechRecognizer.createSpeechRecognizer(context)
 
     private var listener: SpeechRecognitionListener? = null
 
-    fun setSpeechListener(listener1: SpeechRecognitionListener) {
-        this.listener = listener1
+    override fun initListener(listener: SpeechRecognitionListener) {
+        this.listener = listener
         speechRecognizer.setRecognitionListener(
             object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle) {
-                    listener?.onStartRecognition()
+                    listener.onStartRecognition()
                 }
+
                 override fun onBeginningOfSpeech() {
                 }
+
                 override fun onRmsChanged(rmsdB: Float) {
 
                 }
+
                 override fun onBufferReceived(buffer: ByteArray) {
 
                 }
@@ -34,14 +45,14 @@ class SpeechRecognizerHelper(
                 }
 
                 override fun onError(error: Int) {
-                    listener?.onErrorRecognition()
+                    listener.onErrorRecognition()
                 }
 
                 override fun onResults(results: Bundle) {
                     val matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     if (matches != null && matches.size > 0) {
                         val command = matches[0]
-                        listener?.onCompleteRecognition(command)
+                        listener.onCompleteRecognition(command)
                     }
                 }
 
@@ -50,7 +61,7 @@ class SpeechRecognizerHelper(
                         partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     if (matches != null && matches.size > 0) {
                         val partialText = matches[0]
-                        listener?.onPartialRecognition(partialText)
+                        listener.onPartialRecognition(partialText)
                     }
                 }
 
@@ -59,17 +70,17 @@ class SpeechRecognizerHelper(
         )
     }
 
-    fun startListening() {
+    override fun startListening() {
         speechRecognizer.startListening(createIntent())
     }
 
-    fun stopListening() {
+    override fun stopListening() {
         speechRecognizer.cancel()
     }
 
-    fun destroyRecognizer() {
+    override fun destroyRecognizer() {
+        speechRecognizer.stopListening()
         speechRecognizer.destroy()
-        listener = null
     }
 
     private fun createIntent(): Intent {
@@ -80,11 +91,11 @@ class SpeechRecognizerHelper(
         return i
     }
 
-    interface SpeechRecognitionListener {
-        fun onStartRecognition() {}
-        fun onErrorRecognition() {}
-        fun onPartialRecognition(currentResult: String)
-        fun onCompleteRecognition(result: String)
-    }
+}
 
+interface SpeechRecognitionListener {
+    fun onStartRecognition() {}
+    fun onErrorRecognition() {}
+    fun onPartialRecognition(currentResult: String)
+    fun onCompleteRecognition(result: String)
 }

@@ -10,27 +10,35 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
-import com.sagar.fluenty.ui.utils.AudioPlayerHelper
-import com.sagar.fluenty.ui.utils.AudioRecorderHelper
-import com.sagar.fluenty.ui.utils.GeminiModelHelper
-import com.sagar.fluenty.ui.utils.TextToSpeechHelper
+import com.sagar.fluenty.ui.utils.TextToSpeechManager
+import com.sagar.fluenty.ui.utils.TextToSpeechManagerImpl
+import com.sagar.fluenty.ui.utils.AudioPlayerManager
+import com.sagar.fluenty.ui.utils.AudioPlayerManagerImpl
+import com.sagar.fluenty.ui.utils.AudioPlayerListener
+import com.sagar.fluenty.ui.utils.AudioRecorderManager
+import com.sagar.fluenty.ui.utils.AudioRecorderManagerImpl
+import com.sagar.fluenty.ui.utils.AudioRecorderListener
+import com.sagar.fluenty.ui.utils.GeminiApiManager
+import com.sagar.fluenty.ui.utils.GeminiApiManagerImpl
+import com.sagar.fluenty.ui.utils.GeminiApiListener
+import com.sagar.fluenty.ui.utils.TextToSpeechListener
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 class AudioRecordScreenViewModel(
-    private val textToSpeechHelper: TextToSpeechHelper,
-    private val geminiModelHelper: GeminiModelHelper,
-    private val audioRecorderHelper: AudioRecorderHelper,
-    private val audioPlayerHelper: AudioPlayerHelper,
+    private val textToSpeechManager: TextToSpeechManager,
+    private val geminiApiManager: GeminiApiManager,
+    private val audioRecorderManager: AudioRecorderManager,
+    private val audioPlayerManager: AudioPlayerManager
 ) : ViewModel(),
-    TextToSpeechHelper.Listener,
-    GeminiModelHelper.Listener,
-    AudioRecorderHelper.Listener,
-    AudioPlayerHelper.Listener {
+    TextToSpeechListener,
+    GeminiApiListener,
+    AudioRecorderListener,
+    AudioPlayerListener {
 
-    var audioRecordScreenState by mutableStateOf<AudioRecordScreenState>(AudioRecordScreenState.Initial)
+    var screenState by mutableStateOf<AudioRecordScreenState>(AudioRecordScreenState.Initial)
     var conversationList = mutableStateListOf<ConversationMessage>()
     private var responseText = ""
 
@@ -38,38 +46,15 @@ class AudioRecordScreenViewModel(
     val messageChannelFlow = messageChannel.receiveAsFlow()
 
     init {
-        textToSpeechHelper.initListener(this)
-        geminiModelHelper.initListener(this)
-        audioRecorderHelper.initListener(this)
-        audioPlayerHelper.initListener(this)
-    }
-
-    private fun disablePreviousMessageEditing() {
-        var index = conversationList.size - 1
-        while (index > 0 || !conversationList[index].isUser) {
-            index--
-        }
-        conversationList[index] =
-            conversationList[index].copy(isEditingEnabled = false, isError = false)
-    }
-
-    fun resendPreviousMessage() {
-        // User is done talking now, start Processing
-        audioRecordScreenState = AudioRecordScreenState.ProcessingSpeech
-        viewModelScope.launch {
-            if (conversationList.size > 0) {
-                geminiModelHelper.getResponse(conversationList[conversationList.size - 1].message)
-            }
-        }
-    }
-
-    fun editPreviousMessage() {
-
+        textToSpeechManager.initListener(this)
+        geminiApiManager.initListener(this)
+        audioRecorderManager.initListener(this)
+        audioPlayerManager.initListener(this)
     }
 
     fun getResponseFromAudioFile(context: Context) {
         viewModelScope.launch {
-            geminiModelHelper.getResponseFromAudioFile(context, "audio.mp3")
+
         }
     }
 
@@ -77,7 +62,7 @@ class AudioRecordScreenViewModel(
     // Gemini Callbacks
     override fun onResponseGenerated(response: String) {
         responseText = response
-        textToSpeechHelper.readText(response)
+        textToSpeechManager.readText(response)
     }
 
     override fun onErrorOccurred(e: Exception) {
@@ -88,12 +73,12 @@ class AudioRecordScreenViewModel(
             conversationList[conversationList.size - 1] =
                 conversationList[conversationList.size - 1].copy(isError = true)
         }
-        audioRecordScreenState = AudioRecordScreenState.Initial
+        screenState = AudioRecordScreenState.Initial
     }
 
     // TTS Callbacks
     override fun onStartTTS() {
-        audioRecordScreenState = AudioRecordScreenState.ListeningToResponse
+        screenState = AudioRecordScreenState.ListeningToResponse
         conversationList.add(ConversationMessage("", false, UUID.randomUUID().toString()))
     }
 
@@ -131,21 +116,26 @@ class AudioRecordScreenViewModel(
     }
 
     override fun onCompleteTTS() {
-        audioRecordScreenState = AudioRecordScreenState.Initial
+        screenState = AudioRecordScreenState.Initial
     }
 
     override fun onCleared() {
         super.onCleared()
-        audioRecorderHelper.destroy()
-        audioPlayerHelper.stopRecording()
+        textToSpeechManager.destroy()
     }
 
     companion object {
         fun getFactory(context: Context) = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
-                val textToSpeechHelper = TextToSpeechHelper(context)
+                val appTextToSpeech = TextToSpeechManagerImpl(context)
+                val geminiApi = GeminiApiManagerImpl
+                val audioRecorder = AudioRecorderManagerImpl(context)
+                val audioPlayer = AudioPlayerManagerImpl(context)
                 return AudioRecordScreenViewModel(
-                    textToSpeechHelper, GeminiModelHelper, AudioRecorderHelper, AudioPlayerHelper
+                    textToSpeechManager = appTextToSpeech,
+                    geminiApiManager = geminiApi,
+                    audioRecorderManager = audioRecorder,
+                    audioPlayerManager = audioPlayer
                 ) as T
             }
         }
