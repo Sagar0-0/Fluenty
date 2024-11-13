@@ -1,4 +1,4 @@
-package com.sagar.fluenty.ui.screen
+package com.sagar.fluenty.ui.screen.audio
 
 import android.content.Context
 import android.util.Log
@@ -10,24 +10,27 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import com.sagar.fluenty.ui.utils.AudioPlayerHelper
+import com.sagar.fluenty.ui.utils.AudioRecorderHelper
 import com.sagar.fluenty.ui.utils.GeminiModelHelper
-import com.sagar.fluenty.ui.utils.SpeechRecognizerHelper
 import com.sagar.fluenty.ui.utils.TextToSpeechHelper
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-class ConversationScreenViewModel(
-    private val speechRecognizerHelper: SpeechRecognizerHelper,
+class AudioRecordScreenViewModel(
     private val textToSpeechHelper: TextToSpeechHelper,
-    private val geminiModelHelper: GeminiModelHelper
+    private val geminiModelHelper: GeminiModelHelper,
+    private val audioRecorderHelper: AudioRecorderHelper,
+    private val audioPlayerHelper: AudioPlayerHelper,
 ) : ViewModel(),
-    SpeechRecognizerHelper.SpeechRecognitionListener,
     TextToSpeechHelper.Listener,
-    GeminiModelHelper.Listener {
+    GeminiModelHelper.Listener,
+    AudioRecorderHelper.Listener,
+    AudioPlayerHelper.Listener {
 
-    var currentState by mutableStateOf<ConversationScreenState>(ConversationScreenState.Initial)
+    var audioRecordScreenState by mutableStateOf<AudioRecordScreenState>(AudioRecordScreenState.Initial)
     var conversationList = mutableStateListOf<ConversationMessage>()
     private var responseText = ""
 
@@ -35,17 +38,10 @@ class ConversationScreenViewModel(
     val messageChannelFlow = messageChannel.receiveAsFlow()
 
     init {
-        speechRecognizerHelper.setSpeechListener(this)
         textToSpeechHelper.initListener(this)
         geminiModelHelper.initListener(this)
-    }
-
-    fun startListening() {
-        speechRecognizerHelper.startListening()
-    }
-
-    fun stopListening() {
-        speechRecognizerHelper.stopListening()
+        audioRecorderHelper.initListener(this)
+        audioPlayerHelper.initListener(this)
     }
 
     private fun disablePreviousMessageEditing() {
@@ -59,7 +55,7 @@ class ConversationScreenViewModel(
 
     fun resendPreviousMessage() {
         // User is done talking now, start Processing
-        currentState = ConversationScreenState.ProcessingSpeech
+        audioRecordScreenState = AudioRecordScreenState.ProcessingSpeech
         viewModelScope.launch {
             if (conversationList.size > 0) {
                 geminiModelHelper.getResponse(conversationList[conversationList.size - 1].message)
@@ -71,40 +67,12 @@ class ConversationScreenViewModel(
 
     }
 
-    // Speech Recognition Callbacks
-    override fun onStartRecognition() {
-        currentState = ConversationScreenState.RecognizingSpeech
-        conversationList.add(ConversationMessage("", true, UUID.randomUUID().toString()))
-    }
-
-    override fun onPartialRecognition(currentResult: String) {
-        if (conversationList.size > 0) {
-            val lastItem = conversationList[conversationList.size - 1]
-            conversationList[conversationList.size - 1] = lastItem.copy(message = currentResult)
-        }
-    }
-
-    override fun onCompleteRecognition(result: String) {
-        disablePreviousMessageEditing()
-        if (conversationList.size > 0) {
-            val lastItem = conversationList[conversationList.size - 1]
-            conversationList[conversationList.size - 1] =
-                lastItem.copy(message = result, isEditingEnabled = true, isError = false)
-        }
-
-        // User is done talking now, start Processing
-        currentState = ConversationScreenState.ProcessingSpeech
+    fun getResponseFromAudioFile(context: Context) {
         viewModelScope.launch {
-            geminiModelHelper.getResponse(result)
+            geminiModelHelper.getResponseFromAudioFile(context, "audio.mp3")
         }
     }
 
-    override fun onErrorRecognition() {
-        currentState = ConversationScreenState.Retry
-        if (conversationList.size > 0 && conversationList[conversationList.size - 1].isUser) {
-            conversationList.removeAt(conversationList.size - 1)
-        }
-    }
 
     // Gemini Callbacks
     override fun onResponseGenerated(response: String) {
@@ -120,12 +88,12 @@ class ConversationScreenViewModel(
             conversationList[conversationList.size - 1] =
                 conversationList[conversationList.size - 1].copy(isError = true)
         }
-        currentState = ConversationScreenState.Initial
+        audioRecordScreenState = AudioRecordScreenState.Initial
     }
 
     // TTS Callbacks
     override fun onStartTTS() {
-        currentState = ConversationScreenState.ListeningToResponse
+        audioRecordScreenState = AudioRecordScreenState.ListeningToResponse
         conversationList.add(ConversationMessage("", false, UUID.randomUUID().toString()))
     }
 
@@ -163,34 +131,53 @@ class ConversationScreenViewModel(
     }
 
     override fun onCompleteTTS() {
-        currentState = ConversationScreenState.Initial
+        audioRecordScreenState = AudioRecordScreenState.Initial
     }
 
     override fun onCleared() {
         super.onCleared()
-        speechRecognizerHelper.stopListening()
-        speechRecognizerHelper.destroyRecognizer()
+        audioRecorderHelper.destroy()
+        audioPlayerHelper.stopRecording()
     }
 
     companion object {
         fun getFactory(context: Context) = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
-                val speechRecognizerHelper = SpeechRecognizerHelper(context)
                 val textToSpeechHelper = TextToSpeechHelper(context)
-                return ConversationScreenViewModel(
-                    speechRecognizerHelper, textToSpeechHelper, GeminiModelHelper
+                return AudioRecordScreenViewModel(
+                    textToSpeechHelper, GeminiModelHelper, AudioRecorderHelper, AudioPlayerHelper
                 ) as T
             }
         }
     }
+
+    override fun onPlayerStarted() {
+        TODO("Not yet implemented")
+    }
+
+    override fun onErrorPlaying() {
+        TODO("Not yet implemented")
+    }
+
+    override fun onStopPlayer() {
+        TODO("Not yet implemented")
+    }
+
+    override fun onRecordingStarted() {
+        TODO("Not yet implemented")
+    }
+
+    override fun onErrorStarting() {
+        TODO("Not yet implemented")
+    }
 }
 
-interface ConversationScreenState {
-    data object Initial : ConversationScreenState
-    data object Retry : ConversationScreenState
-    data object ProcessingSpeech : ConversationScreenState
-    data object RecognizingSpeech : ConversationScreenState
-    data object ListeningToResponse : ConversationScreenState
+interface AudioRecordScreenState {
+    data object Initial : AudioRecordScreenState
+    data object Retry : AudioRecordScreenState
+    data object ProcessingSpeech : AudioRecordScreenState
+    data object RecognizingSpeech : AudioRecordScreenState
+    data object ListeningToResponse : AudioRecordScreenState
 }
 
 data class ConversationMessage(

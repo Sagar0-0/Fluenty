@@ -48,7 +48,7 @@ object GeminiModelHelper {
             } catch (e: Exception) {
                 Log.e("TAG", "getResponse: $e")
                 listener?.onErrorOccurred(
-                    Exception("Token Limit exceeded")
+                    Exception("Free tier Limit Exceeded. Try after Sometime.")
                 )
             }
         }
@@ -59,7 +59,7 @@ object GeminiModelHelper {
             val bytes = readAudioFromAssets(context, fileName)
             val content = content {
                 bytes?.let { blob("audio/mp3", it) }
-                text("Transcribe this audio")
+                text("Understand the audio and respond accordingly.")
             }
             chatHistory.add(content)
             try {
@@ -71,7 +71,7 @@ object GeminiModelHelper {
                 }
             } catch (e: Exception) {
                 Log.e("TAG", "getResponse: $e")
-                listener?.onErrorOccurred(e)
+                listener?.onErrorOccurred(Exception("Free tier Limit Exceeded. Try after Sometime."))
             }
         }
     }

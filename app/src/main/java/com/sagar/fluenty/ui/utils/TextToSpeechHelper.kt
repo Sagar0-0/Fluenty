@@ -20,7 +20,7 @@ class TextToSpeechHelper(
     private var listener: Listener? = null
     private var currentText: String = ""
 
-    fun addListener(listener: Listener) {
+    fun initListener(listener: Listener) {
         this.listener = listener
     }
 
