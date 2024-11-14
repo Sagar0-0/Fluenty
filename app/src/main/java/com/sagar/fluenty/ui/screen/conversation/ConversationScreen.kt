@@ -23,8 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -58,7 +56,7 @@ fun ConversationScreen(
     viewModel.messageChannelFlow.collectInLaunchedEffectWithLifecycle {
         Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
     }
-    val state = viewModel.currentState
+    val state = viewModel.state
     val conversationList = viewModel.conversationList.reversed()
 
     val lazyListState = rememberLazyListState()

@@ -10,15 +10,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.generationConfig
+import com.sagar.fluenty.BuildConfig
 import com.sagar.fluenty.ui.utils.AudioPlayerListener
 import com.sagar.fluenty.ui.utils.AudioPlayerManager
 import com.sagar.fluenty.ui.utils.AudioPlayerManagerImpl
 import com.sagar.fluenty.ui.utils.AudioRecorderListener
 import com.sagar.fluenty.ui.utils.AudioRecorderManager
 import com.sagar.fluenty.ui.utils.AudioRecorderManagerImpl
+import com.sagar.fluenty.ui.utils.GeminiApiAudioManager
+import com.sagar.fluenty.ui.utils.GeminiApiAudioManagerImpl
 import com.sagar.fluenty.ui.utils.GeminiApiListener
-import com.sagar.fluenty.ui.utils.GeminiApiManager
-import com.sagar.fluenty.ui.utils.GeminiApiManagerImpl
 import com.sagar.fluenty.ui.utils.TextToSpeechListener
 import com.sagar.fluenty.ui.utils.TextToSpeechManager
 import com.sagar.fluenty.ui.utils.TextToSpeechManagerImpl
@@ -30,7 +33,7 @@ import java.util.UUID
 
 class AudioRecordScreenViewModel(
     private val textToSpeechManager: TextToSpeechManager,
-    private val geminiApiManager: GeminiApiManager,
+    private val geminiApiAudioManager: GeminiApiAudioManager,
     private val audioRecorderManager: AudioRecorderManager,
     private val audioPlayerManager: AudioPlayerManager
 ) : ViewModel(),
@@ -39,22 +42,42 @@ class AudioRecordScreenViewModel(
     AudioRecorderListener,
     AudioPlayerListener {
 
-    var screenState by mutableStateOf<AudioRecordScreenState>(AudioRecordScreenState.Initial)
+    var state by mutableStateOf<AudioRecordScreenState>(AudioRecordScreenState.Initial)
     var conversationList = mutableStateListOf<RecordingScreenMessage>()
     private var responseText = ""
+    private var currentAudioId = ""
 
     private val messageChannel = Channel<String>(Channel.BUFFERED)
     val messageChannelFlow = messageChannel.receiveAsFlow()
 
     init {
         textToSpeechManager.initListener(this)
-        geminiApiManager.initListener(this)
+        geminiApiAudioManager.initListener(this)
         audioRecorderManager.initListener(this)
         audioPlayerManager.initListener(this)
+
+        getResponse(
+            "You have to act as an English teacher and have to teach me english. More specifically, you have to start by giving me a English word that I have to pronounce, record and send you in an audio file. Then you have to understand the word said in audio file and tell me if the pronunciation of the word is correct or not(do not give long responses). Make sure to tell me the actual pronunciation in American accent. And also score me from 0 to 100 on how much accurate was my pronunciation, if the score is above 80, give next word. Make sure to stick to this context. Now, start by giving me a simple word."
+        )
+    }
+
+    private fun getResponse(result: String) {
+        state = AudioRecordScreenState.ProcessingRecording
+        conversationList.add(
+            RecordingScreenMessage(
+                file = null,
+                message = "",
+                isUser = false,
+                id = UUID.randomUUID().toString(),
+                isAudioPlaying = false
+            )
+        )
+        viewModelScope.launch {
+            geminiApiAudioManager.initialResponse(result)
+        }
     }
 
     //Recorder callbacks
-
     fun startRecording(context: Context) {
         audioRecorderManager.start(context)
     }
@@ -64,58 +87,59 @@ class AudioRecordScreenViewModel(
     }
 
     override fun onRecordingStarted() {
-        screenState = AudioRecordScreenState.RecordingAudio
+        state = AudioRecordScreenState.RecordingAudio
     }
 
     override fun onErrorStarting(e: Exception) {
-        screenState = AudioRecordScreenState.ErrorStartingRecording
+        state = AudioRecordScreenState.ErrorStartingRecording
         viewModelScope.launch {
             messageChannel.send(e.message ?: "Something went wrong!")
         }
     }
 
     override fun onStopRecording(file: File) {
-        screenState = AudioRecordScreenState.ProcessingRecording
         conversationList.add(
             RecordingScreenMessage(
                 message = "",
                 file = file,
                 isUser = true,
-                id = UUID.randomUUID().toString()
-            )
-        )
-        conversationList.add(
-            RecordingScreenMessage(
-                message = "",
-                file = null,
-                isUser = false,
-                id = UUID.randomUUID().toString()
+                id = UUID.randomUUID().toString(),
+                isAudioPlaying = false
             )
         )
         getResponseFromAudioFile(file)
     }
 
     override fun onCancelRecording() {
-        screenState = AudioRecordScreenState.Initial
+        state = AudioRecordScreenState.Initial
     }
 
     fun resendPreviousMessage() {
         // User is done talking now, start Processing
-        screenState = AudioRecordScreenState.ProcessingRecording
+        state = AudioRecordScreenState.ProcessingRecording
         viewModelScope.launch {
             if (conversationList.size > 0 && conversationList[conversationList.size - 1].isUser) {
                 conversationList[conversationList.size - 1].file?.let {
-                    geminiApiManager.generateResponseFromAudio(it)
+                    getResponseFromAudioFile(it)
                 }
             }
         }
     }
 
-
     // Gemini Callbacks
     private fun getResponseFromAudioFile(file: File) {
+        state = AudioRecordScreenState.ProcessingRecording
+        conversationList.add(
+            RecordingScreenMessage(
+                message = "",
+                file = null,
+                isUser = false,
+                id = UUID.randomUUID().toString(),
+                isAudioPlaying = false
+            )
+        )
         viewModelScope.launch {
-            geminiApiManager.generateResponseFromAudio(file)
+            geminiApiAudioManager.generateResponseFromAudio(file)
         }
     }
 
@@ -128,16 +152,19 @@ class AudioRecordScreenViewModel(
         viewModelScope.launch {
             messageChannel.send(e.message ?: "")
         }
+        if (conversationList.size > 0 && !conversationList[conversationList.size - 1].isUser) {
+            conversationList.removeAt(conversationList.size - 1)
+        }
         if (conversationList.size > 0) {
             conversationList[conversationList.size - 1] =
                 conversationList[conversationList.size - 1].copy(isError = true)
         }
-        screenState = AudioRecordScreenState.Initial
+        state = AudioRecordScreenState.Initial
     }
 
     // TTS Callbacks
     override fun onStartTTS() {
-        screenState = AudioRecordScreenState.ListeningToResponse
+        state = AudioRecordScreenState.ListeningToResponse
         onStopAudioPlaying()
     }
 
@@ -154,11 +181,14 @@ class AudioRecordScreenViewModel(
         viewModelScope.launch {
             messageChannel.send("Something went wrong while using TextToSpeech")
         }
+        if (conversationList.size > 0 && !conversationList[conversationList.size - 1].isUser) {
+            conversationList.removeAt(conversationList.size - 1)
+        }
         if (conversationList.size > 0) {
             conversationList[conversationList.size - 1] =
                 conversationList[conversationList.size - 1].copy(isError = true)
         }
-        screenState = AudioRecordScreenState.Initial
+        state = AudioRecordScreenState.Initial
     }
 
     private fun showResponseForTTSRead(target: String): String {
@@ -186,7 +216,7 @@ class AudioRecordScreenViewModel(
     }
 
     override fun onCompleteTTS() {
-        screenState = AudioRecordScreenState.Initial
+        state = AudioRecordScreenState.Initial
     }
 
     override fun onCleared() {
@@ -198,12 +228,23 @@ class AudioRecordScreenViewModel(
         fun getFactory(context: Context) = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
                 val appTextToSpeech = TextToSpeechManagerImpl(context)
-                val geminiApi = GeminiApiManagerImpl
+                val geminiApi = GeminiApiAudioManagerImpl(
+                    GenerativeModel(
+                        modelName = "gemini-1.5-pro-002",
+                        apiKey = BuildConfig.GEMINI_API_KEY_DEBUG,
+                        generationConfig = generationConfig {
+                            temperature = 1f
+                            topK = 40
+                            topP = 0.95f
+                            responseMimeType = "text/plain"
+                        },
+                    )
+                )
                 val audioRecorder = AudioRecorderManagerImpl(context)
                 val audioPlayer = AudioPlayerManagerImpl(context)
                 return AudioRecordScreenViewModel(
                     textToSpeechManager = appTextToSpeech,
-                    geminiApiManager = geminiApi,
+                    geminiApiAudioManager = geminiApi,
                     audioRecorderManager = audioRecorder,
                     audioPlayerManager = audioPlayer
                 ) as T
@@ -212,10 +253,18 @@ class AudioRecordScreenViewModel(
     }
 
     // Player Callbacks
-    fun startPlayingAudio(file: File?) {
-        if (screenState !is AudioRecordScreenState.ListeningToResponse) {
+    fun startPlayingAudio(file: File?, id: String) {
+        currentAudioId = id
+        if (state !is AudioRecordScreenState.ListeningToResponse) {
             if (file != null) {
                 audioPlayerManager.play(file)
+                val msg = conversationList.find {
+                    it.id == id
+                }
+                val idx = conversationList.indexOf(msg)
+                if (idx != -1){
+                    conversationList[idx] = msg!!.copy(isAudioPlaying = true)
+                }
             }
         }
     }
@@ -225,15 +274,29 @@ class AudioRecordScreenViewModel(
     }
 
     override fun onPlayerStarted() {
-        screenState = AudioRecordScreenState.PlayingRecording
+        state = AudioRecordScreenState.PlayingRecording
     }
 
     override fun onErrorPlaying() {
-        screenState = AudioRecordScreenState.ErrorPlayingRecording
+        val msg = conversationList.find {
+            it.id == currentAudioId
+        }
+        val idx = conversationList.indexOf(msg)
+        if (idx != -1){
+            conversationList[idx] = msg!!.copy(isAudioPlaying = false)
+        }
+        state = AudioRecordScreenState.ErrorPlayingRecording
     }
 
     override fun onStopPlayer() {
-        screenState = AudioRecordScreenState.Initial
+        val msg = conversationList.find {
+            it.id == currentAudioId
+        }
+        val idx = conversationList.indexOf(msg)
+        if (idx != -1){
+            conversationList[idx] = msg!!.copy(isAudioPlaying = false)
+        }
+        state = AudioRecordScreenState.Initial
     }
 }
 
@@ -252,6 +315,6 @@ data class RecordingScreenMessage(
     val message: String,
     val isUser: Boolean,
     val id: String,
-    val isEditingEnabled: Boolean = false,
+    val isAudioPlaying: Boolean,
     val isError: Boolean = false
 )

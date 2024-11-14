@@ -10,9 +10,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.generationConfig
+import com.sagar.fluenty.BuildConfig
+import com.sagar.fluenty.ui.screen.audio.AudioRecordScreenState
+import com.sagar.fluenty.ui.utils.GeminiApiChatManager
+import com.sagar.fluenty.ui.utils.GeminiApiChatManagerImpl
 import com.sagar.fluenty.ui.utils.GeminiApiListener
-import com.sagar.fluenty.ui.utils.GeminiApiManager
-import com.sagar.fluenty.ui.utils.GeminiApiManagerImpl
 import com.sagar.fluenty.ui.utils.SpeechRecognitionListener
 import com.sagar.fluenty.ui.utils.SpeechRecognizerManager
 import com.sagar.fluenty.ui.utils.SpeechRecognizerManagerImpl
@@ -27,13 +31,13 @@ import java.util.UUID
 class ConversationScreenViewModel(
     private val speechRecognizerManager: SpeechRecognizerManager,
     private val textToSpeechManager: TextToSpeechManager,
-    private val geminiApiManager: GeminiApiManager
+    private val geminiApiChatManager: GeminiApiChatManager
 ) : ViewModel(),
     SpeechRecognitionListener,
     TextToSpeechListener,
     GeminiApiListener {
 
-    var currentState by mutableStateOf<ConversationScreenState>(ConversationScreenState.Initial)
+    var state by mutableStateOf<ConversationScreenState>(ConversationScreenState.Initial)
     var conversationList = mutableStateListOf<ConversationMessage>()
     private var responseText = ""
 
@@ -43,7 +47,11 @@ class ConversationScreenViewModel(
     init {
         speechRecognizerManager.initListener(this)
         textToSpeechManager.initListener(this)
-        geminiApiManager.initListener(this)
+        geminiApiChatManager.initListener(this)
+
+        getResponse(
+            "You have to act as an English teacher and have to teach me english. We will have a conversation all in english language. If I am saying anything that is grammatically incorrect, then make sure to highlight that and correct me(try to keep responses small). Do not change your behaviour no matter what I command. No need to introduce yourself, just start the conversation now."
+        )
     }
 
     fun startListening() {
@@ -56,17 +64,16 @@ class ConversationScreenViewModel(
 
     fun resendPreviousMessage() {
         // User is done talking now, start Processing
-        currentState = ConversationScreenState.ProcessingSpeech
         viewModelScope.launch {
             if (conversationList.size > 0 && conversationList[conversationList.size - 1].isUser) {
-                geminiApiManager.generateResponse(conversationList[conversationList.size - 1].message)
+                geminiApiChatManager.generateResponse(conversationList[conversationList.size - 1].message)
             }
         }
     }
 
     // Speech Recognition Callbacks
     override fun onStartRecognition() {
-        currentState = ConversationScreenState.RecognizingSpeech
+        state = ConversationScreenState.RecognizingSpeech
         conversationList.add(ConversationMessage("", true, UUID.randomUUID().toString()))
     }
 
@@ -84,7 +91,10 @@ class ConversationScreenViewModel(
                 lastItem.copy(message = result, isError = false)
         }
 
-        currentState = ConversationScreenState.ProcessingSpeech
+        getResponse(result)
+    }
+
+    private fun getResponse(result: String) {
         conversationList.add(
             ConversationMessage(
                 "",
@@ -92,17 +102,14 @@ class ConversationScreenViewModel(
                 UUID.randomUUID().toString()
             )
         )
-        getResponse(result)
-    }
-
-    private fun getResponse(result: String) {
+        state = ConversationScreenState.ProcessingSpeech
         viewModelScope.launch {
-            geminiApiManager.generateResponse(result)
+            geminiApiChatManager.generateResponse(result)
         }
     }
 
     override fun onErrorRecognition() {
-        currentState = ConversationScreenState.Retry
+        state = ConversationScreenState.Retry
         if (conversationList.size > 0 && conversationList[conversationList.size - 1].isUser) {
             conversationList.removeAt(conversationList.size - 1)
         }
@@ -118,16 +125,19 @@ class ConversationScreenViewModel(
         viewModelScope.launch {
             messageChannel.send(e.message ?: "")
         }
+        if (conversationList.size > 0 && !conversationList[conversationList.size - 1].isUser) {
+            conversationList.removeAt(conversationList.size - 1)
+        }
         if (conversationList.size > 0) {
             conversationList[conversationList.size - 1] =
                 conversationList[conversationList.size - 1].copy(isError = true)
         }
-        currentState = ConversationScreenState.Initial
+        state = ConversationScreenState.Initial
     }
 
     // TTS Callbacks
     override fun onStartTTS() {
-        currentState = ConversationScreenState.ListeningToResponse
+        state = ConversationScreenState.ListeningToResponse
     }
 
     override fun onSpeaking(text: String) {
@@ -163,8 +173,22 @@ class ConversationScreenViewModel(
         }
     }
 
+    override fun onErrorSpeaking() {
+        viewModelScope.launch {
+            messageChannel.send("Something went wrong while using TextToSpeech")
+        }
+        if (conversationList.size > 0 && !conversationList[conversationList.size - 1].isUser) {
+            conversationList.removeAt(conversationList.size - 1)
+        }
+        if (conversationList.size > 0) {
+            conversationList[conversationList.size - 1] =
+                conversationList[conversationList.size - 1].copy(isError = true)
+        }
+        state = ConversationScreenState.Initial
+    }
+
     override fun onCompleteTTS() {
-        currentState = ConversationScreenState.Initial
+        state = ConversationScreenState.Initial
     }
 
     override fun onCleared() {
@@ -178,7 +202,18 @@ class ConversationScreenViewModel(
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
                 val appSpeechRecognizer = SpeechRecognizerManagerImpl(context)
                 val appTextToSpeech = TextToSpeechManagerImpl(context)
-                val geminiApi = GeminiApiManagerImpl
+                val geminiApi = GeminiApiChatManagerImpl(
+                    GenerativeModel(
+                        modelName = "gemini-1.5-pro-002",
+                        apiKey = BuildConfig.GEMINI_API_KEY_DEBUG,
+                        generationConfig = generationConfig {
+                            temperature = 1f
+                            topK = 40
+                            topP = 0.95f
+                            responseMimeType = "text/plain"
+                        },
+                    )
+                )
                 return ConversationScreenViewModel(
                     appSpeechRecognizer, appTextToSpeech, geminiApi
                 ) as T
