@@ -57,7 +57,7 @@ class AudioRecordScreenViewModel(
         audioPlayerManager.initListener(this)
 
         getResponse(
-            "You have to act as an English teacher and have to teach me english. More specifically, you have to start by giving me a English word that I have to pronounce, record and send you in an audio file. Then you have to understand the word said in audio file and tell me if the pronunciation of the word is correct or not(do not give long responses). Make sure to tell me the actual pronunciation in American accent with phoneme breakdown of the word(like *kuhmf-tr-bl* for comfortable). And also score me from 0 to 100 on how much accurate was my pronunciation, if the score is above 80, give next word. Make sure to stick to this context. Now, start by giving me a simple word."
+            "You have to act as an English teacher and have to teach me english. More specifically, you have to start by giving me a English word that I have to pronounce, record and send you in an audio file. Then you have to understand the word said in audio file and tell me if the pronunciation of the word is correct or not(do not give long responses). Make sure to tell me the actual pronunciation in American accent with phoneme breakdown of the word(like *kuhmf-tr-bl* for comfortable). And also score me from 0 to 100 on how much accurate was my pronunciation, if the score is above 80, give next word. Make sure to stick to this context and give different words everytime. Now, start by giving me a simple word."
         )
     }
 
@@ -144,6 +144,10 @@ class AudioRecordScreenViewModel(
     }
 
     override fun onResponseGenerated(response: String) {
+        if (conversationList.size > 0 && conversationList[conversationList.size - 1].isUser) {
+            conversationList[conversationList.size - 1] =
+                conversationList[conversationList.size - 1].copy(isError = false)
+        }
         responseText = response
         textToSpeechManager.readText(response)
     }
@@ -289,6 +293,17 @@ class AudioRecordScreenViewModel(
     }
 
     override fun onStopPlayer() {
+        val msg = conversationList.find {
+            it.id == currentAudioId
+        }
+        val idx = conversationList.indexOf(msg)
+        if (idx != -1){
+            conversationList[idx] = msg!!.copy(isAudioPlaying = false)
+        }
+        state = AudioRecordScreenState.Initial
+    }
+
+    override fun onCompletePlaying() {
         val msg = conversationList.find {
             it.id == currentAudioId
         }

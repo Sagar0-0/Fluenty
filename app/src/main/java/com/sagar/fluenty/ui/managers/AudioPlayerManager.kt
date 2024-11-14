@@ -33,6 +33,11 @@ class AudioPlayerManagerImpl(
                 player = this
 
                 listener?.onPlayerStarted()
+
+                player!!.setOnCompletionListener {
+                    listener?.onCompletePlaying()
+                    this@AudioPlayerManagerImpl.stop()
+                }
             }
         } catch (e: Exception) {
             listener?.onErrorPlaying()
@@ -54,5 +59,6 @@ class AudioPlayerManagerImpl(
 interface AudioPlayerListener {
     fun onPlayerStarted()
     fun onErrorPlaying()
-    fun onStopPlayer() {}
+    fun onStopPlayer()
+    fun onCompletePlaying()
 }

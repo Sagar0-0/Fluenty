@@ -123,7 +123,7 @@ fun AudioRecordScreen(
                         UserAudioFile(
                             modifier = Modifier.animateItem(),
                             audioFile = it.file,
-                            isAudioPlaying = state is AudioRecordScreenState.PlayingRecording,
+                            isAudioPlaying = it.isAudioPlaying,
                             onStop = {
                                 viewModel.onStopAudioPlaying()
                             },
