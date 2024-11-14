@@ -10,21 +10,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
-import com.sagar.fluenty.ui.utils.TextToSpeechManager
-import com.sagar.fluenty.ui.utils.TextToSpeechManagerImpl
+import com.sagar.fluenty.ui.utils.AudioPlayerListener
 import com.sagar.fluenty.ui.utils.AudioPlayerManager
 import com.sagar.fluenty.ui.utils.AudioPlayerManagerImpl
-import com.sagar.fluenty.ui.utils.AudioPlayerListener
+import com.sagar.fluenty.ui.utils.AudioRecorderListener
 import com.sagar.fluenty.ui.utils.AudioRecorderManager
 import com.sagar.fluenty.ui.utils.AudioRecorderManagerImpl
-import com.sagar.fluenty.ui.utils.AudioRecorderListener
+import com.sagar.fluenty.ui.utils.GeminiApiListener
 import com.sagar.fluenty.ui.utils.GeminiApiManager
 import com.sagar.fluenty.ui.utils.GeminiApiManagerImpl
-import com.sagar.fluenty.ui.utils.GeminiApiListener
 import com.sagar.fluenty.ui.utils.TextToSpeechListener
+import com.sagar.fluenty.ui.utils.TextToSpeechManager
+import com.sagar.fluenty.ui.utils.TextToSpeechManagerImpl
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.UUID
 
 class AudioRecordScreenViewModel(
@@ -39,7 +40,7 @@ class AudioRecordScreenViewModel(
     AudioPlayerListener {
 
     var screenState by mutableStateOf<AudioRecordScreenState>(AudioRecordScreenState.Initial)
-    var conversationList = mutableStateListOf<ConversationMessage>()
+    var conversationList = mutableStateListOf<RecordingScreenMessage>()
     private var responseText = ""
 
     private val messageChannel = Channel<String>(Channel.BUFFERED)
@@ -52,20 +53,78 @@ class AudioRecordScreenViewModel(
         audioPlayerManager.initListener(this)
     }
 
-    fun getResponseFromAudioFile(context: Context) {
-        viewModelScope.launch {
+    //Recorder callbacks
 
+    fun startRecording(context: Context) {
+        audioRecorderManager.start(context)
+    }
+
+    fun stopRecording() {
+        audioRecorderManager.stop()
+    }
+
+    override fun onRecordingStarted() {
+        screenState = AudioRecordScreenState.RecordingAudio
+    }
+
+    override fun onErrorStarting(e: Exception) {
+        screenState = AudioRecordScreenState.ErrorStartingRecording
+        viewModelScope.launch {
+            messageChannel.send(e.message ?: "Something went wrong!")
+        }
+    }
+
+    override fun onStopRecording(file: File) {
+        screenState = AudioRecordScreenState.ProcessingRecording
+        conversationList.add(
+            RecordingScreenMessage(
+                message = "",
+                file = file,
+                isUser = true,
+                id = UUID.randomUUID().toString()
+            )
+        )
+        conversationList.add(
+            RecordingScreenMessage(
+                message = "",
+                file = null,
+                isUser = false,
+                id = UUID.randomUUID().toString()
+            )
+        )
+        getResponseFromAudioFile(file)
+    }
+
+    override fun onCancelRecording() {
+        screenState = AudioRecordScreenState.Initial
+    }
+
+    fun resendPreviousMessage() {
+        // User is done talking now, start Processing
+        screenState = AudioRecordScreenState.ProcessingRecording
+        viewModelScope.launch {
+            if (conversationList.size > 0 && conversationList[conversationList.size - 1].isUser) {
+                conversationList[conversationList.size - 1].file?.let {
+                    geminiApiManager.generateResponseFromAudio(it)
+                }
+            }
         }
     }
 
 
     // Gemini Callbacks
+    private fun getResponseFromAudioFile(file: File) {
+        viewModelScope.launch {
+            geminiApiManager.generateResponseFromAudio(file)
+        }
+    }
+
     override fun onResponseGenerated(response: String) {
         responseText = response
         textToSpeechManager.readText(response)
     }
 
-    override fun onErrorOccurred(e: Exception) {
+    override fun onErrorGeneratingResponse(e: Exception) {
         viewModelScope.launch {
             messageChannel.send(e.message ?: "")
         }
@@ -79,7 +138,7 @@ class AudioRecordScreenViewModel(
     // TTS Callbacks
     override fun onStartTTS() {
         screenState = AudioRecordScreenState.ListeningToResponse
-        conversationList.add(ConversationMessage("", false, UUID.randomUUID().toString()))
+        onStopAudioPlaying()
     }
 
     override fun onSpeaking(text: String) {
@@ -89,6 +148,17 @@ class AudioRecordScreenViewModel(
             conversationList[conversationList.size - 1] =
                 lastItem.copy(message = lastItem.message + showResponseForTTSRead(text))
         }
+    }
+
+    override fun onErrorSpeaking() {
+        viewModelScope.launch {
+            messageChannel.send("Something went wrong while using TextToSpeech")
+        }
+        if (conversationList.size > 0) {
+            conversationList[conversationList.size - 1] =
+                conversationList[conversationList.size - 1].copy(isError = true)
+        }
+        screenState = AudioRecordScreenState.Initial
     }
 
     private fun showResponseForTTSRead(target: String): String {
@@ -141,36 +211,44 @@ class AudioRecordScreenViewModel(
         }
     }
 
+    // Player Callbacks
+    fun startPlayingAudio(file: File?) {
+        if (screenState !is AudioRecordScreenState.ListeningToResponse) {
+            if (file != null) {
+                audioPlayerManager.play(file)
+            }
+        }
+    }
+
+    fun onStopAudioPlaying() {
+        audioPlayerManager.stop()
+    }
+
     override fun onPlayerStarted() {
-        TODO("Not yet implemented")
+        screenState = AudioRecordScreenState.PlayingRecording
     }
 
     override fun onErrorPlaying() {
-        TODO("Not yet implemented")
+        screenState = AudioRecordScreenState.ErrorPlayingRecording
     }
 
     override fun onStopPlayer() {
-        TODO("Not yet implemented")
-    }
-
-    override fun onRecordingStarted() {
-        TODO("Not yet implemented")
-    }
-
-    override fun onErrorStarting() {
-        TODO("Not yet implemented")
+        screenState = AudioRecordScreenState.Initial
     }
 }
 
 interface AudioRecordScreenState {
     data object Initial : AudioRecordScreenState
-    data object Retry : AudioRecordScreenState
-    data object ProcessingSpeech : AudioRecordScreenState
-    data object RecognizingSpeech : AudioRecordScreenState
+    data object RecordingAudio : AudioRecordScreenState
+    data object ErrorStartingRecording : AudioRecordScreenState
+    data object PlayingRecording : AudioRecordScreenState
+    data object ErrorPlayingRecording : AudioRecordScreenState
+    data object ProcessingRecording : AudioRecordScreenState
     data object ListeningToResponse : AudioRecordScreenState
 }
 
-data class ConversationMessage(
+data class RecordingScreenMessage(
+    val file: File?,
     val message: String,
     val isUser: Boolean,
     val id: String,

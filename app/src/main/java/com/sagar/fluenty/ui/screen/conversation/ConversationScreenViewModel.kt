@@ -104,7 +104,7 @@ class ConversationScreenViewModel(
         textToSpeechManager.readText(response)
     }
 
-    override fun onErrorOccurred(e: Exception) {
+    override fun onErrorGeneratingResponse(e: Exception) {
         viewModelScope.launch {
             messageChannel.send(e.message ?: "")
         }

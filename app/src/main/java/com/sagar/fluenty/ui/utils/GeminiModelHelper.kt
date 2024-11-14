@@ -50,11 +50,11 @@ object GeminiApiManagerImpl : GeminiApiManager {
                 if (response.text != null) {
                     listener?.onResponseGenerated(response.text ?: "")
                 } else {
-                    listener?.onErrorOccurred(Exception("Null response"))
+                    listener?.onErrorGeneratingResponse(Exception("Null response"))
                 }
             } catch (e: Exception) {
                 Log.e("TAG", "getResponse: $e")
-                listener?.onErrorOccurred(
+                listener?.onErrorGeneratingResponse(
                     Exception("Free tier Limit Exceeded. Try after Sometime.")
                 )
             }
@@ -74,11 +74,11 @@ object GeminiApiManagerImpl : GeminiApiManager {
                 if (response.text != null) {
                     listener?.onResponseGenerated(response.text ?: "")
                 } else {
-                    listener?.onErrorOccurred(Exception("Null response"))
+                    listener?.onErrorGeneratingResponse(Exception("Null response"))
                 }
             } catch (e: Exception) {
                 Log.e("TAG", "getResponse: $e")
-                listener?.onErrorOccurred(Exception("Free tier Limit Exceeded. Try after Sometime."))
+                listener?.onErrorGeneratingResponse(Exception("Free tier Limit Exceeded. Try after Sometime."))
             }
         }
     }
@@ -100,5 +100,5 @@ object GeminiApiManagerImpl : GeminiApiManager {
 
 interface GeminiApiListener {
     fun onResponseGenerated(response: String)
-    fun onErrorOccurred(e: Exception)
+    fun onErrorGeneratingResponse(e: Exception)
 }
