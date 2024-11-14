@@ -56,7 +56,17 @@ fun AudioRecordScreen(
     }
 
     Scaffold(
-        topBar = {
+        modifier = Modifier
+            .background(Color.Black)
+            .statusBarsPadding()
+    ) { inner ->
+        Column(
+            modifier = Modifier
+                .padding(inner)
+                .fillMaxSize()
+                .background(Color.Black),
+            verticalArrangement = Arrangement.Bottom
+        ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -70,21 +80,13 @@ fun AudioRecordScreen(
                         tint = Color.White
                     )
                 }
-                Text(text = "English Practice", color = Color.White)
+                Text(text = "Pronunciation Practice", color = Color.White)
             }
-        }
-    ) { inner ->
-        Column(
-            modifier = Modifier
-                .padding(inner)
-                .fillMaxSize()
-                .background(Color.Black),
-            verticalArrangement = Arrangement.Bottom
-        ) {
+            Spacer(Modifier.height(20.dp))
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
-                    .statusBarsPadding()
+                    .background(Color.Black)
                     .padding(horizontal = 20.dp)
                     .weight(1f)
                     .fillMaxWidth(),

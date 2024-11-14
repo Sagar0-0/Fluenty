@@ -68,7 +68,17 @@ fun ConversationScreen(
     }
 
     Scaffold(
-        topBar = {
+        modifier = Modifier
+            .background(Color.Black)
+            .statusBarsPadding()
+    ) { inner ->
+        Column(
+            modifier = Modifier
+                .background(Color.Black)
+                .padding(inner)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.Bottom
+        ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -84,19 +94,11 @@ fun ConversationScreen(
                 }
                 Text(text = "English Practice", color = Color.White)
             }
-        }
-    ) { inner ->
-        Column(
-            modifier = Modifier
-                .padding(inner)
-                .fillMaxSize()
-                .background(Color.Black),
-            verticalArrangement = Arrangement.Bottom
-        ) {
+            Spacer(Modifier.height(20.dp))
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
-                    .statusBarsPadding()
+                    .background(Color.Black)
                     .padding(horizontal = 20.dp)
                     .weight(1f)
                     .fillMaxWidth(),
@@ -114,10 +116,6 @@ fun ConversationScreen(
                             modifier = Modifier.animateItem(),
                             message = it.message,
                             isResponseError = it.isError,
-                            isEditingEnabled = it.isEditingEnabled,
-                            onEditClick = {
-                                viewModel.editPreviousMessage()
-                            },
                             onRetryClick = {
                                 viewModel.resendPreviousMessage()
                             }
@@ -267,8 +265,6 @@ private fun UserMessage(
     modifier: Modifier,
     message: String,
     isResponseError: Boolean,
-    isEditingEnabled: Boolean,
-    onEditClick: () -> Unit,
     onRetryClick: () -> Unit
 ) {
     Column(
@@ -291,16 +287,6 @@ private fun UserMessage(
                     imageVector = Icons.Default.Refresh,
                     contentDescription = null,
                     tint = Color.Red
-                )
-            }
-            AnimatedVisibility(isEditingEnabled) {
-                Icon(
-                    modifier = Modifier
-                        .padding(start = 10.dp)
-                        .clickable { onEditClick() },
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = null,
-                    tint = Color.White
                 )
             }
         }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
@@ -51,15 +52,16 @@ fun HomeScreen(onConversationClick: () -> Unit, onAudioClick: () -> Unit) {
     }
     if (isAudioPermissionGranted) {
         Scaffold(
-            topBar = {
-                Text("Fluenty Assistant", color = Color.White)
-            }
+            modifier = Modifier.background(Color.Black).statusBarsPadding(),
+//            topBar = {
+//                Text("Fluenty Assistant", color = Color.White, fontSize = 20.sp)
+//            }
         ) { inner ->
             Column(
                 modifier = Modifier
                     .padding(inner)
                     .background(Color.Black)
-                    .padding(10.dp)
+                    .padding(20.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -92,7 +94,7 @@ fun HomeScreen(onConversationClick: () -> Unit, onAudioClick: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Practice Pronunciation",
+                        "Pronunciation Practice",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold

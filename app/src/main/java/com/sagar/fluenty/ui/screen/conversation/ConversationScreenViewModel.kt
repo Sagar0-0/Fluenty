@@ -54,15 +54,6 @@ class ConversationScreenViewModel(
         speechRecognizerManager.stopListening()
     }
 
-    private fun disablePreviousMessageEditing() {
-        var index = conversationList.size - 1
-        while (index > 0 || !conversationList[index].isUser) {
-            index--
-        }
-        conversationList[index] =
-            conversationList[index].copy(isEditingEnabled = false, isError = false)
-    }
-
     fun resendPreviousMessage() {
         // User is done talking now, start Processing
         currentState = ConversationScreenState.ProcessingSpeech
@@ -71,10 +62,6 @@ class ConversationScreenViewModel(
                 geminiApiManager.generateResponse(conversationList[conversationList.size - 1].message)
             }
         }
-    }
-
-    fun editPreviousMessage() {
-
     }
 
     // Speech Recognition Callbacks
@@ -91,11 +78,10 @@ class ConversationScreenViewModel(
     }
 
     override fun onCompleteRecognition(result: String) {
-        disablePreviousMessageEditing()
         if (conversationList.size > 0) {
             val lastItem = conversationList[conversationList.size - 1]
             conversationList[conversationList.size - 1] =
-                lastItem.copy(message = result, isEditingEnabled = true, isError = false)
+                lastItem.copy(message = result, isError = false)
         }
 
         // User is done talking now, start Processing
@@ -204,6 +190,5 @@ data class ConversationMessage(
     val message: String,
     val isUser: Boolean,
     val id: String,
-    val isEditingEnabled: Boolean = false,
     val isError: Boolean = false
 )
