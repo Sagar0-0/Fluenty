@@ -10,15 +10,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
-import com.sagar.fluenty.ui.utils.SpeechRecognizerManager
-import com.sagar.fluenty.ui.utils.SpeechRecognizerManagerImpl
-import com.sagar.fluenty.ui.utils.TextToSpeechManager
-import com.sagar.fluenty.ui.utils.TextToSpeechManagerImpl
+import com.sagar.fluenty.ui.utils.GeminiApiListener
 import com.sagar.fluenty.ui.utils.GeminiApiManager
 import com.sagar.fluenty.ui.utils.GeminiApiManagerImpl
-import com.sagar.fluenty.ui.utils.GeminiApiListener
 import com.sagar.fluenty.ui.utils.SpeechRecognitionListener
+import com.sagar.fluenty.ui.utils.SpeechRecognizerManager
+import com.sagar.fluenty.ui.utils.SpeechRecognizerManagerImpl
 import com.sagar.fluenty.ui.utils.TextToSpeechListener
+import com.sagar.fluenty.ui.utils.TextToSpeechManager
+import com.sagar.fluenty.ui.utils.TextToSpeechManagerImpl
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -84,8 +84,18 @@ class ConversationScreenViewModel(
                 lastItem.copy(message = result, isError = false)
         }
 
-        // User is done talking now, start Processing
         currentState = ConversationScreenState.ProcessingSpeech
+        conversationList.add(
+            ConversationMessage(
+                "",
+                false,
+                UUID.randomUUID().toString()
+            )
+        )
+        getResponse(result)
+    }
+
+    private fun getResponse(result: String) {
         viewModelScope.launch {
             geminiApiManager.generateResponse(result)
         }
@@ -118,7 +128,6 @@ class ConversationScreenViewModel(
     // TTS Callbacks
     override fun onStartTTS() {
         currentState = ConversationScreenState.ListeningToResponse
-        conversationList.add(ConversationMessage("", false, UUID.randomUUID().toString()))
     }
 
     override fun onSpeaking(text: String) {

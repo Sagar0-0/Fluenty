@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sagar.fluenty.ui.utils.AssistantMessage
 import com.sagar.fluenty.ui.utils.collectInLaunchedEffectWithLifecycle
 
 @Composable
@@ -224,40 +225,6 @@ fun ConversationScreen(
     }
 
 
-}
-
-@Composable
-private fun AssistantMessage(modifier: Modifier, message: String) {
-    Column(
-        modifier = modifier.animateContentSize()
-    ) {
-        Text(text = "Assistant", color = Color.White, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(5.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .animateContentSize()
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(
-                        RoundedCornerShape(
-                            topEnd = 10.dp,
-                            bottomEnd = 10.dp,
-                            bottomStart = 10.dp
-                        )
-                    )
-                    .animateContentSize()
-                    .background(Color.DarkGray),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    modifier = Modifier.padding(10.dp),
-                    text = message, fontSize = 16.sp, color = Color.White
-                )
-            }
-        }
-    }
 }
 
 @Composable
