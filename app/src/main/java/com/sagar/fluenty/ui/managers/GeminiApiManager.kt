@@ -1,4 +1,4 @@
-package com.sagar.fluenty.ui.utils
+package com.sagar.fluenty.ui.managers
 
 import android.util.Log
 import com.google.ai.client.generativeai.GenerativeModel
