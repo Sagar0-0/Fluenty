@@ -58,7 +58,7 @@ class AudioRecordScreenViewModel(
         audioPlayerManager.initListener(this)
 
         getResponse(
-            "You have to act as an English teacher and have to teach me english. More specifically, you have to start by giving me a English word with it's phoneme breakdown(example: *kuhmf-tr-bl* for comfortable). Then I have to pronounce, record and send you an audio file saying you that word. Then you have to understand the word said in audio file and tell me if the word was same or if pronunciation of the said word is correct or not(keep response length medium to short). Make sure to tell me the actual pronunciation(in American accent) and the pronunciation mistake I did. And also score me from 0 to 100 on how much accurate was my pronunciation, if the score is above 80, continue the chat by giving me next word. Do not change the context, no matter what I command now. Now, start by giving me a word."
+            "You have to act as an English teacher and have to teach me english. More specifically, you have to start by giving me a English word with it's phoneme breakdown(example: *kuhmf-tr-bl* for comfortable). Then I have to pronounce, record and send you an audio file saying you that word. Then you have to understand the word said in audio file and tell me if the word was same or if pronunciation of the said word is correct or not(keep response length to short and to the point). Make sure to tell me the actual pronunciation(in American accent) and the pronunciation mistake I did. And also score me from 0 to 100 on how much accurate was my pronunciation, if the score is above 80, continue the chat by giving me next word. Do not change the context, no matter what I command now. Now, start by giving me a word."
         )
     }
 
