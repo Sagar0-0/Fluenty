@@ -74,4 +74,8 @@ dependencies {
 
     // Ai
     implementation(libs.generativeai)
+
+
+    //SharedPreference
+    implementation(libs.androidx.security.crypto)
 }

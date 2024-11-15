@@ -10,6 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import com.sagar.fluenty.ui.screen.audio.AudioRecordScreen
 import com.sagar.fluenty.ui.screen.conversation.ConversationScreen
 import com.sagar.fluenty.ui.screen.home.HomeScreen
+import com.sagar.fluenty.ui.screen.settings.SettingsScreen
 import com.sagar.fluenty.ui.theme.FluentyTheme
 
 class MainActivity : ComponentActivity() {
@@ -30,6 +31,9 @@ class MainActivity : ComponentActivity() {
                             },
                             onAudioClick = {
                                 navController.navigate("AUDIO")
+                            },
+                            onSettingsClick = {
+                                navController.navigate("SETTINGS")
                             }
                         )
                     }
@@ -40,6 +44,11 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("AUDIO") {
                         AudioRecordScreen {
+                            navController.navigateUp()
+                        }
+                    }
+                    composable("SETTINGS") {
+                        SettingsScreen {
                             navController.navigateUp()
                         }
                     }

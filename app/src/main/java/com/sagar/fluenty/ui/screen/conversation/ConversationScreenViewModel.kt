@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig
 import com.sagar.fluenty.BuildConfig
+import com.sagar.fluenty.ui.managers.EncryptedSharedPreferencesManagerImpl
 import com.sagar.fluenty.ui.managers.GeminiApiChatManager
 import com.sagar.fluenty.ui.managers.GeminiApiChatManagerImpl
 import com.sagar.fluenty.ui.managers.GeminiApiListener
@@ -201,10 +202,15 @@ class ConversationScreenViewModel(
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
                 val appSpeechRecognizer = SpeechRecognizerManagerImpl(context)
                 val appTextToSpeech = TextToSpeechManagerImpl(context)
+
+                val encryptedSharedPreferencesManager =
+                    EncryptedSharedPreferencesManagerImpl(context)
+                val key = encryptedSharedPreferencesManager.get("API_KEY")
+
                 val geminiApi = GeminiApiChatManagerImpl(
                     GenerativeModel(
                         modelName = "gemini-1.5-pro-002",
-                        apiKey = BuildConfig.GEMINI_API_KEY_DEBUG,
+                        apiKey = key ?: BuildConfig.GEMINI_API_KEY_DEBUG,
                         generationConfig = generationConfig {
                             temperature = 1f
                             topK = 40

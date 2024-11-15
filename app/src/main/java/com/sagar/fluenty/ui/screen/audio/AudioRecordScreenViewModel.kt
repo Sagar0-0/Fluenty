@@ -19,6 +19,7 @@ import com.sagar.fluenty.ui.managers.AudioPlayerManagerImpl
 import com.sagar.fluenty.ui.managers.AudioRecorderListener
 import com.sagar.fluenty.ui.managers.AudioRecorderManager
 import com.sagar.fluenty.ui.managers.AudioRecorderManagerImpl
+import com.sagar.fluenty.ui.managers.EncryptedSharedPreferencesManagerImpl
 import com.sagar.fluenty.ui.managers.GeminiApiAudioManager
 import com.sagar.fluenty.ui.managers.GeminiApiAudioManagerImpl
 import com.sagar.fluenty.ui.managers.GeminiApiListener
@@ -223,39 +224,6 @@ class AudioRecordScreenViewModel(
         state = AudioRecordScreenState.Initial
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        textToSpeechManager.destroy()
-    }
-
-    companion object {
-        fun getFactory(context: Context) = object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
-                val appTextToSpeech = TextToSpeechManagerImpl(context)
-                val geminiApi = GeminiApiAudioManagerImpl(
-                    GenerativeModel(
-                        modelName = "gemini-1.5-pro-002",
-                        apiKey = BuildConfig.GEMINI_API_KEY_DEBUG,
-                        generationConfig = generationConfig {
-                            temperature = 1f
-                            topK = 40
-                            topP = 0.95f
-                            responseMimeType = "text/plain"
-                        },
-                    )
-                )
-                val audioRecorder = AudioRecorderManagerImpl(context)
-                val audioPlayer = AudioPlayerManagerImpl(context)
-                return AudioRecordScreenViewModel(
-                    textToSpeechManager = appTextToSpeech,
-                    geminiApiAudioManager = geminiApi,
-                    audioRecorderManager = audioRecorder,
-                    audioPlayerManager = audioPlayer
-                ) as T
-            }
-        }
-    }
-
     // Player Callbacks
     fun startPlayingAudio(file: File?, id: String) {
         currentAudioId = id
@@ -266,7 +234,7 @@ class AudioRecordScreenViewModel(
                     it.id == id
                 }
                 val idx = conversationList.indexOf(msg)
-                if (idx != -1){
+                if (idx != -1) {
                     conversationList[idx] = msg!!.copy(isAudioPlaying = true)
                 }
             }
@@ -286,7 +254,7 @@ class AudioRecordScreenViewModel(
             it.id == currentAudioId
         }
         val idx = conversationList.indexOf(msg)
-        if (idx != -1){
+        if (idx != -1) {
             conversationList[idx] = msg!!.copy(isAudioPlaying = false)
         }
         state = AudioRecordScreenState.ErrorPlayingRecording
@@ -297,7 +265,7 @@ class AudioRecordScreenViewModel(
             it.id == currentAudioId
         }
         val idx = conversationList.indexOf(msg)
-        if (idx != -1){
+        if (idx != -1) {
             conversationList[idx] = msg!!.copy(isAudioPlaying = false)
         }
         state = AudioRecordScreenState.Initial
@@ -308,10 +276,49 @@ class AudioRecordScreenViewModel(
             it.id == currentAudioId
         }
         val idx = conversationList.indexOf(msg)
-        if (idx != -1){
+        if (idx != -1) {
             conversationList[idx] = msg!!.copy(isAudioPlaying = false)
         }
         state = AudioRecordScreenState.Initial
+    }
+
+
+    override fun onCleared() {
+        super.onCleared()
+        textToSpeechManager.destroy()
+    }
+
+    companion object {
+        fun getFactory(context: Context) = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+                val appTextToSpeech = TextToSpeechManagerImpl(context)
+                val audioRecorder = AudioRecorderManagerImpl(context)
+                val audioPlayer = AudioPlayerManagerImpl(context)
+
+                val encryptedSharedPreferencesManager =
+                    EncryptedSharedPreferencesManagerImpl(context)
+                val key = encryptedSharedPreferencesManager.get("API_KEY")
+
+                val geminiApi = GeminiApiAudioManagerImpl(
+                    GenerativeModel(
+                        modelName = "gemini-1.5-pro-002",
+                        apiKey = key ?: BuildConfig.GEMINI_API_KEY_DEBUG,
+                        generationConfig = generationConfig {
+                            temperature = 1f
+                            topK = 40
+                            topP = 0.95f
+                            responseMimeType = "text/plain"
+                        },
+                    )
+                )
+                return AudioRecordScreenViewModel(
+                    textToSpeechManager = appTextToSpeech,
+                    geminiApiAudioManager = geminiApi,
+                    audioRecorderManager = audioRecorder,
+                    audioPlayerManager = audioPlayer
+                ) as T
+            }
+        }
     }
 }
 
