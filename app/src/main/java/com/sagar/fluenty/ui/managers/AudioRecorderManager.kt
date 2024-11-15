@@ -3,6 +3,7 @@ package com.sagar.fluenty.ui.managers
 import android.content.Context
 import android.media.MediaRecorder
 import android.os.Build
+import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -57,13 +58,17 @@ class AudioRecorderManagerImpl(
     }
 
     override fun stop() {
-        recorder?.apply {
-            stop()
-            reset()
-        }
-        recorder = null
+        try {
+            recorder?.apply {
+                stop()
+                reset()
+            }
+            recorder = null
 
-        outputFile?.let { listener?.onStopRecording(it) }
+            outputFile?.let { listener?.onStopRecording(it) }
+        } catch (e: Exception) {
+            Log.e("TAG", "stop: ${e.message}")
+        }
     }
 
     override fun cancel() {
