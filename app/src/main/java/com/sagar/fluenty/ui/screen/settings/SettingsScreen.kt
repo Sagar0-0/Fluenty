@@ -86,7 +86,7 @@ fun SettingsScreen(
                 onValueChange = {
                     textField = it
                 },
-                trailingIcon = if (textField.isNotEmpty() && textField != viewModel.apiKey) {
+                trailingIcon = if (textField != viewModel.apiKey) {
                     {
                         IconButton(
                             onClick = {
