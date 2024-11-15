@@ -3,7 +3,18 @@
 ## **Key Features:**
 
 * **English Speaking Practice:** Enhance your fluency and confidence with AI feedback and suggestions. Start a normal conversation and AI will make sure your grammar is correct.
+  
+
+https://github.com/user-attachments/assets/b5f7e629-c9c0-445a-b06e-b9825c7d0709
+
+
 * **Pronunciation Practice:** Improve your pronunciation with AI-powered feedback, Random words will be suggested to pronounce and AI will give you feedback with a score.
+  
+
+https://github.com/user-attachments/assets/2005223d-a4a6-4258-99f2-1915c41e00f5
+
+
+* **Multi-Model Support:** Option to select different Gemini Models from Setting. Note that Different models can generate whole different responses. 
 
 > NOTE: I am using Gemini API to generate responses, and the correctness of the responses is completely dependent on the Model.
 
