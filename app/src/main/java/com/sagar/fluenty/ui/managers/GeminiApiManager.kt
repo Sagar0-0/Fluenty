@@ -3,7 +3,9 @@ package com.sagar.fluenty.ui.managers
 import android.util.Log
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.Content
+import com.google.ai.client.generativeai.type.ServerException
 import com.google.ai.client.generativeai.type.content
+import com.sagar.fluenty.ui.utils.extractErrorMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -48,10 +50,15 @@ class GeminiApiAudioManagerImpl(
                 } else {
                     listener?.onErrorGeneratingResponse(Exception("Null response"))
                 }
+            } catch (e: ServerException) {
+                Log.e("TAG", "getResponse: $e")
+                listener?.onErrorGeneratingResponse(
+                    Exception(extractErrorMessage(e.message?:""))
+                )
             } catch (e: Exception) {
                 Log.e("TAG", "getResponse: $e")
                 listener?.onErrorGeneratingResponse(
-                    Exception("Free tier Limit Exceeded. Try after Sometime.")
+                    Exception("Unexpected Error occurred")
                 )
             }
         }
@@ -72,9 +79,16 @@ class GeminiApiAudioManagerImpl(
                 } else {
                     listener?.onErrorGeneratingResponse(Exception("Null response"))
                 }
+            } catch (e: ServerException) {
+                Log.e("TAG", "getResponse: $e")
+                listener?.onErrorGeneratingResponse(
+                    Exception(extractErrorMessage(e.message?:""))
+                )
             } catch (e: Exception) {
                 Log.e("TAG", "getResponse: $e")
-                listener?.onErrorGeneratingResponse(Exception("Free tier Limit Exceeded. Try after Sometime."))
+                listener?.onErrorGeneratingResponse(
+                    Exception("Unexpected Error occurred")
+                )
             }
         }
     }
@@ -119,10 +133,15 @@ class GeminiApiChatManagerImpl(
                 } else {
                     listener?.onErrorGeneratingResponse(Exception("Null response"))
                 }
+            } catch (e: ServerException) {
+                Log.e("TAG", "getResponse: $e")
+                listener?.onErrorGeneratingResponse(
+                    Exception(extractErrorMessage(e.message?:""))
+                )
             } catch (e: Exception) {
                 Log.e("TAG", "getResponse: $e")
                 listener?.onErrorGeneratingResponse(
-                    Exception("Free tier Limit Exceeded. Try after Sometime.")
+                    Exception("Unexpected Error occurred")
                 )
             }
         }
