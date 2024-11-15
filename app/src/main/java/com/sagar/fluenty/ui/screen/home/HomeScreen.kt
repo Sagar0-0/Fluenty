@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.sagar.fluenty.R
+import com.sagar.fluenty.ui.utils.AppTopBar
 import com.sagar.fluenty.ui.utils.HomeItemShadow
 
 @Composable
@@ -75,46 +76,28 @@ fun HomeScreen(
             modifier = Modifier
                 .background(Color.Black)
                 .statusBarsPadding(),
+            topBar = {
+                AppTopBar(
+                    text = "Fluenty",
+                    trailingIcon = Icons.Default.Settings,
+                    onTrailingIconClick = onSettingsClick
+                )
+            }
         ) { inner ->
             Column(
                 modifier = Modifier
+                    .background(Color.Black)
                     .padding(inner)
-                    .background(Color.Black),
+                    .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.DarkGray.copy(0.2f))
-                        .padding(vertical = 5.dp, horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        modifier = Modifier
-                            .weight(1f),
-                        text = "Fluenty",
-                        color = Color.White,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
 
-                    IconButton(
-                        onClick = onSettingsClick
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = null,
-                            tint = Color.White
-                        )
-                    }
-                }
                 SectionItem(
                     painter = painterResource(R.drawable.english),
                     title = "English Practice"
                 ) {
                     onConversationClick()
                 }
-                Spacer(Modifier.height(20.dp))
                 SectionItem(
                     painter = painterResource(R.drawable.pronunciation),
                     title = "Pronunciation Practice"
@@ -147,12 +130,11 @@ fun HomeScreen(
 private fun ColumnScope.SectionItem(painter: Painter, title: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .padding(horizontal = 20.dp)
             .fillMaxWidth()
             .weight(1f)
             .clip(RoundedCornerShape(20.dp))
             .background(Color.DarkGray)
-            .clickable() {
+            .clickable {
                 onClick()
             },
         contentAlignment = Alignment.BottomCenter

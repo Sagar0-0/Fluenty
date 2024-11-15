@@ -14,11 +14,29 @@ class SettingsScreenViewModel(
     private val encryptedSharedPreferencesManager: EncryptedSharedPreferencesManager
 ) : ViewModel() {
 
-    var apiKey by mutableStateOf(encryptedSharedPreferencesManager.get("API_KEY"))
+    val availableModels = listOf(
+        "gemini-1.5-pro-002",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-002",
+        "gemini-1.5-flash-8b",
+        "gemini-exp-1114",
+        "gemini-1.0-pro"
+    )
 
-    fun save(newKey: String) {
-        encryptedSharedPreferencesManager.save("API_KEY",newKey)
+    var apiKey by mutableStateOf(encryptedSharedPreferencesManager.get("API_KEY"))
+    var currentModel by mutableStateOf(
+        encryptedSharedPreferencesManager.get("MODEL") ?: availableModels[0]
+    )
+
+    fun saveKey(newKey: String) {
+        encryptedSharedPreferencesManager.save("API_KEY", newKey)
         apiKey = encryptedSharedPreferencesManager.get("API_KEY")
+    }
+
+    fun saveModel(model: String) {
+        encryptedSharedPreferencesManager.save("MODEL", model)
+        currentModel = encryptedSharedPreferencesManager.get("MODEL") ?: availableModels[0]
     }
 
     companion object {

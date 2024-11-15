@@ -206,10 +206,11 @@ class ConversationScreenViewModel(
                 val encryptedSharedPreferencesManager =
                     EncryptedSharedPreferencesManagerImpl(context)
                 val key = encryptedSharedPreferencesManager.get("API_KEY")
+                val model = encryptedSharedPreferencesManager.get("MODEL") ?: "gemini-1.5-pro-002"
 
                 val geminiApi = GeminiApiChatManagerImpl(
                     GenerativeModel(
-                        modelName = "gemini-1.5-pro-002",
+                        modelName = model,
                         apiKey = key ?: BuildConfig.GEMINI_API_KEY_DEBUG,
                         generationConfig = generationConfig {
                             temperature = 1f

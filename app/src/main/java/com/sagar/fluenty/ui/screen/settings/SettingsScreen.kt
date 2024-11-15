@@ -15,11 +15,13 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -37,7 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-
+import com.sagar.fluenty.ui.utils.AppTopBar
 
 @Composable
 fun SettingsScreen(
@@ -50,43 +52,33 @@ fun SettingsScreen(
     var textField by remember {
         mutableStateOf(viewModel.apiKey ?: "")
     }
+    var isDropDownExpanded by remember {
+        mutableStateOf(false)
+    }
 
     Scaffold(
         modifier = Modifier
             .background(Color.Black)
-            .statusBarsPadding()
+            .statusBarsPadding(),
+        topBar = {
+            AppTopBar(
+                text = "Settings",
+                leadingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                onLeadingIconClick = onBack
+            )
+        }
     ) { inner ->
         Column(
             modifier = Modifier
-                .fillMaxSize()
                 .background(Color.Black)
                 .padding(20.dp)
+                .fillMaxSize()
                 .padding(inner)
                 .verticalScroll(rememberScrollState())
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onBack
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                }
-                Text(
-                    modifier = Modifier.weight(1f),
-                    text = "Pronunciation Practice",
-                    color = Color.White
-                )
-            }
 
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
@@ -98,7 +90,7 @@ fun SettingsScreen(
                     {
                         IconButton(
                             onClick = {
-                                viewModel.save(textField)
+                                viewModel.saveKey(textField)
                             }
                         ) {
                             Icon(
@@ -113,6 +105,39 @@ fun SettingsScreen(
                     Text(text = "Enter your API Key", color = Color.White)
                 }
             )
+
+            Column {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        isDropDownExpanded = !isDropDownExpanded
+                    }
+                ) {
+                    Text("Current Model: ${viewModel.currentModel}")
+                }
+
+                DropdownMenu(
+                    modifier = Modifier.fillMaxWidth(0.8f),
+                    expanded = isDropDownExpanded,
+                    onDismissRequest = {
+                        isDropDownExpanded = !isDropDownExpanded
+                    },
+                    scrollState = rememberScrollState(),
+                    containerColor = Color.DarkGray
+                ) {
+                    viewModel.availableModels.forEach {
+                        DropdownMenuItem(
+                            text = {
+                                Text(text = it, color = Color.White)
+                            },
+                            onClick = {
+                                viewModel.saveModel(it)
+                                isDropDownExpanded = !isDropDownExpanded
+                            }
+                        )
+                    }
+                }
+            }
 
             Text(
                 modifier = Modifier.padding(horizontal = 10.dp),

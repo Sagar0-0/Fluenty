@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sagar.fluenty.ui.utils.AppTopBar
 import com.sagar.fluenty.ui.utils.AssistantMessage
 import com.sagar.fluenty.ui.utils.collectInLaunchedEffectWithLifecycle
 
@@ -69,7 +71,14 @@ fun ConversationScreen(
     Scaffold(
         modifier = Modifier
             .background(Color.Black)
-            .statusBarsPadding()
+            .statusBarsPadding(),
+        topBar = {
+            AppTopBar(
+                text = "English Practice",
+                leadingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                onLeadingIconClick = onBack
+            )
+        }
     ) { inner ->
         Column(
             modifier = Modifier
@@ -78,21 +87,6 @@ fun ConversationScreen(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.Bottom
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onBack
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                }
-                Text(text = "English Practice", color = Color.White)
-            }
             Spacer(Modifier.height(20.dp))
             LazyColumn(
                 state = lazyListState,
