@@ -1,7 +1,6 @@
 package com.sagar.fluenty.ui.screen.audio
 
 import android.content.Context
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +45,7 @@ class AudioRecordScreenViewModel(
     var state by mutableStateOf<AudioRecordScreenState>(AudioRecordScreenState.Initial)
     var conversationList = mutableStateListOf<RecordingScreenMessage>()
     private var responseText = ""
+    private var indexCovered = 0
     private var currentAudioId = ""
 
     private val messageChannel = Channel<String>(Channel.BUFFERED)
@@ -68,6 +68,7 @@ class AudioRecordScreenViewModel(
             RecordingScreenMessage(
                 file = null,
                 message = "",
+                indexToHighlight = null,
                 isUser = false,
                 id = UUID.randomUUID().toString(),
                 isAudioPlaying = false
@@ -102,6 +103,7 @@ class AudioRecordScreenViewModel(
         conversationList.add(
             RecordingScreenMessage(
                 message = "",
+                indexToHighlight = null,
                 file = file,
                 isUser = true,
                 id = UUID.randomUUID().toString(),
@@ -133,6 +135,7 @@ class AudioRecordScreenViewModel(
         conversationList.add(
             RecordingScreenMessage(
                 message = "",
+                indexToHighlight = null,
                 file = null,
                 isUser = false,
                 id = UUID.randomUUID().toString(),
@@ -145,11 +148,12 @@ class AudioRecordScreenViewModel(
     }
 
     override fun onResponseGenerated(response: String) {
-        if (conversationList.size > 0 && conversationList[conversationList.size - 1].isUser) {
-            conversationList[conversationList.size - 1] =
-                conversationList[conversationList.size - 1].copy(isError = false)
-        }
+        conversationList[conversationList.size - 1] =
+            conversationList[conversationList.size - 1].copy(message = response)
+
         responseText = response
+        indexCovered = 0
+
         textToSpeechManager.readText(response)
     }
 
@@ -174,12 +178,9 @@ class AudioRecordScreenViewModel(
     }
 
     override fun onSpeaking(text: String) {
-        Log.e("TAG", "onSpeaking: Current Spoken $text")
-        if (conversationList.size > 0) {
-            val lastItem = conversationList[conversationList.size - 1]
-            conversationList[conversationList.size - 1] =
-                lastItem.copy(message = lastItem.message + showResponseForTTSRead(text))
-        }
+        val lastItem = conversationList[conversationList.size - 1]
+        conversationList[conversationList.size - 1] =
+            lastItem.copy(indexToHighlight = getIndexToHighlight(text))
     }
 
     override fun onErrorSpeaking() {
@@ -196,32 +197,19 @@ class AudioRecordScreenViewModel(
         state = AudioRecordScreenState.Initial
     }
 
-    private fun showResponseForTTSRead(target: String): String {
-        val index = responseText.indexOf(target, ignoreCase = true)
-        return if (index != -1) {
-            // End Index is the end of the target
-            var endIndex = index + target.length
-
-            // Check if there's a character after the target
-            if (endIndex < responseText.length) {
-                // Include the next character if it's a special character
-                val nextChar = responseText[endIndex]
-                if (!nextChar.isLetterOrDigit() || nextChar == ' ') {
-                    endIndex++
-                }
-                val result = responseText.substring(0, endIndex)
-                responseText = responseText.removePrefix(result)
-                result
-            } else {
-                ""
-            }
-        } else {
-            responseText
-        }
-    }
-
     override fun onCompleteTTS() {
         state = AudioRecordScreenState.Initial
+
+        val lastItem = conversationList[conversationList.size - 1]
+        conversationList[conversationList.size - 1] =
+            lastItem.copy(indexToHighlight = null)
+    }
+
+    private fun getIndexToHighlight(text: String): Pair<Int, Int>? {
+        val index = responseText.indexOf(text, startIndex = indexCovered, ignoreCase = true)
+        if (index == -1) return null
+        indexCovered = index + text.length
+        return Pair(index, index + text.length)
     }
 
     // Player Callbacks
@@ -340,6 +328,7 @@ interface AudioRecordScreenState {
 data class RecordingScreenMessage(
     val file: File?,
     val message: String,
+    val indexToHighlight: Pair<Int, Int>?,
     val isUser: Boolean,
     val id: String,
     val isAudioPlaying: Boolean,

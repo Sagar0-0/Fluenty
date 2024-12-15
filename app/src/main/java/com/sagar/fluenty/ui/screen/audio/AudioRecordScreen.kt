@@ -132,7 +132,8 @@ fun AudioRecordScreen(
                     } else {
                         AssistantMessage(
                             modifier = Modifier.animateItem(),
-                            message = it.message
+                            message = it.message,
+                            indexToHighlight = it.indexToHighlight
                         )
                     }
                     Spacer(Modifier.height(10.dp))

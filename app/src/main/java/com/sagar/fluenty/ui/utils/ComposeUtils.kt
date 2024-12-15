@@ -3,10 +3,8 @@ package com.sagar.fluenty.ui.utils
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +27,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -120,6 +122,64 @@ fun AssistantMessage(modifier: Modifier, message: String) {
     }
 }
 
+@Composable
+fun AssistantMessage(modifier: Modifier, message: String, indexToHighlight: Pair<Int, Int>?) {
+    Column(
+        modifier = modifier.animateContentSize()
+    ) {
+        Text(text = "Assistant", color = Color.White, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(5.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .animateContentSize()
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(
+                        RoundedCornerShape(
+                            topEnd = 10.dp,
+                            bottomEnd = 10.dp,
+                            bottomStart = 10.dp
+                        )
+                    )
+                    .animateContentSize()
+                    .background(Color.DarkGray),
+                contentAlignment = Alignment.Center
+            ) {
+                Crossfade(message.isEmpty(), label = "") {
+                    if (it) {
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .width(50.dp)
+                        )
+                    } else {
+                        val annotatedString = remember(message, indexToHighlight) {
+                            buildAnnotatedString {
+                                if(indexToHighlight==null){
+                                    append(message)
+                                } else {
+                                    append(message.substring(0, indexToHighlight.first))
+                                    withStyle(style = SpanStyle(background = Color.Blue.copy(0.5f))) {
+                                        append(message.substring(indexToHighlight.first,indexToHighlight.second))
+                                    }
+                                    append(message.substring(startIndex = indexToHighlight.second))
+                                }
+                            }
+                        }
+                        Text(
+                            modifier = Modifier.padding(10.dp),
+                            text = annotatedString,
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 @Composable
@@ -138,7 +198,7 @@ fun AppTopBar(
             .padding(vertical = 5.dp, horizontal = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if(leadingIcon!=null) {
+        if (leadingIcon != null) {
             IconButton(
                 onClick = onLeadingIconClick
             ) {
