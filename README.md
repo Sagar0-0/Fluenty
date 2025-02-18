@@ -36,7 +36,7 @@ https://github.com/user-attachments/assets/2005223d-a4a6-4258-99f2-1915c41e00f5
 * **MediaPlayer:** MediaPlayer class can be used to control the playback of audio/ video files and streams.
 * **MediaRecorder:** Used to record audio and video.
 * **EncryptedSharedPreferences:** An implementation of SharedPreferences that encrypts keys and values.
-* **GenerativeModel:** A facilitator for a given multimodal model. (Model used: "gemini-1.5-pro-002")
+* **GenerativeModel:** A facilitator for a given multimodal model. (Model used: "Gemini-1.5-pro-002")
 * **SpeechRecognizer:** Recognizes User Speech and returns a String Result.
 * **TextToSpeech:** Uses Android TTS service and reads the AI responses.
 * **Coroutines:** Asynchronous programming framework for non-blocking operations.
