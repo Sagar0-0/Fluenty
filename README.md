@@ -20,7 +20,7 @@ https://github.com/user-attachments/assets/2005223d-a4a6-4258-99f2-1915c41e00f5
 
 ## **Getting Started:**
 
-1. **Download:** Download the latest APK from the [Link here](https://github.com/Sagar0-0/Fluenty/releases/download/1.0.0/Fluenty.apk).
+1. **Download:** Download the latest APK from this [Link](https://github.com/Sagar0-0/Fluenty/releases/download/1.0.0/Fluenty.apk).
 2. **Install:** Install the APK on your Android device.
 3. **Add API Key:** Go to settings and Add your Gemini test API key(Generate if you don't have it).
 
