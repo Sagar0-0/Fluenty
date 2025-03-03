@@ -1,6 +1,6 @@
 # Fluenty: Your AI-Powered English Assistant
 
-## **Key Features:**
+## **Key Features: **
 
 * **English Speaking Practice:** Enhance your fluency and confidence with AI feedback and suggestions. Start a normal conversation and AI will make sure your grammar is correct.
   
